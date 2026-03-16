@@ -188,6 +188,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .toast{padding:9px 14px;border-radius:var(--r);background:var(--surface2);border:1px solid var(--border2);font-size:12px;color:var(--text);box-shadow:var(--shadow);animation:toastIn .18s ease;display:flex;align-items:center;gap:7px;}
 @keyframes toastIn{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:translateX(0);}}
 
+.color-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s;flex-shrink:0;}
+.color-swatch:hover{transform:scale(1.15);}
+.color-swatch.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,0.3),0 0 10px currentColor;}
+
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
@@ -302,6 +306,51 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('cardModal')">Cancel</button>
       <button class="btn btn-primary" id="saveCardBtn" onclick="saveCard()">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- COLUMN EDIT MODAL -->
+<div class="modal-overlay" id="colModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="colMenuTitle">Edit Column</div>
+      <button class="modal-close" onclick="closeModal('colModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">Column Name</div>
+        <input class="field-input" id="colRenameInput" placeholder="Column name&hellip;" />
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Dot Color</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+          <div class="color-swatch" data-color="#4f6ef7" onclick="pickSwatch(this)" style="background:#4f6ef7;"></div>
+          <div class="color-swatch" data-color="#f59e0b" onclick="pickSwatch(this)" style="background:#f59e0b;"></div>
+          <div class="color-swatch" data-color="#8b5cf6" onclick="pickSwatch(this)" style="background:#8b5cf6;"></div>
+          <div class="color-swatch" data-color="#10b981" onclick="pickSwatch(this)" style="background:#10b981;"></div>
+          <div class="color-swatch" data-color="#ef4444" onclick="pickSwatch(this)" style="background:#ef4444;"></div>
+          <div class="color-swatch" data-color="#06b6d4" onclick="pickSwatch(this)" style="background:#06b6d4;"></div>
+          <div class="color-swatch" data-color="#f97316" onclick="pickSwatch(this)" style="background:#f97316;"></div>
+          <div class="color-swatch" data-color="#ec4899" onclick="pickSwatch(this)" style="background:#ec4899;"></div>
+          <div class="color-swatch" data-color="#84cc16" onclick="pickSwatch(this)" style="background:#84cc16;"></div>
+          <div class="color-swatch" data-color="#14b8a6" onclick="pickSwatch(this)" style="background:#14b8a6;"></div>
+          <div class="color-swatch" data-color="#a855f7" onclick="pickSwatch(this)" style="background:#a855f7;"></div>
+          <div class="color-swatch" data-color="#6b7280" onclick="pickSwatch(this)" style="background:#6b7280;"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="color" id="colColorCustom" oninput="onCustomColor(this.value)"
+            style="width:36px;height:36px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);cursor:pointer;padding:2px;" />
+          <span style="font-size:11.5px;color:var(--muted2);">Or pick any custom color</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn" onclick="deleteCol()" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2);">Delete Column</button>
+      <div style="display:flex;gap:7px;">
+        <button class="btn btn-ghost" onclick="closeModal('colModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveColChanges()">Save</button>
+      </div>
     </div>
   </div>
 </div>
@@ -899,34 +948,65 @@ async function addColumn() {
   toast(`Column "${title}" added`, '✓');
 }
 
-async function colMenu(colId) {
+let editingColId = null;
+
+function colMenu(colId) {
   const col = columns.find(c => c.id === colId);
   if (!col) return;
-  const action = prompt(`Column: "${col.title}"\nType: rename · delete`);
-  if (!action) return;
+  editingColId = colId;
+  document.getElementById('colMenuTitle').textContent = col.title;
+  document.getElementById('colRenameInput').value = col.title;
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.color === col.color);
+  });
+  document.getElementById('colColorCustom').value = col.color || '#4f6ef7';
+  document.getElementById('colModal').classList.add('open');
+}
 
-  if (action.trim() === 'rename') {
-    const n = prompt('New name:', col.title);
-    if (!n?.trim()) return;
-    if (isConnected) {
-      await sb.from('columns').update({title:n.trim()}).eq('id', colId);
-    }
-    col.title = n.trim();
-    if (!isConnected) saveFallback();
-    renderBoard();
-  } else if (action.trim() === 'delete') {
-    if (!confirm(`Delete "${col.title}" and all its cards?`)) return;
-    if (isConnected) {
-      await sb.from('cards').delete().eq('column_id', colId);
-      await sb.from('columns').delete().eq('id', colId);
-    }
-    cards   = cards.filter(c => c.column_id !== colId);
-    columns = columns.filter(c => c.id !== colId);
-    if (!isConnected) saveFallback();
-    renderBoard();
-    renderStats();
-    toast('Column deleted');
+async function saveColChanges() {
+  const col = columns.find(c => c.id === editingColId);
+  if (!col) return;
+  const newTitle = document.getElementById('colRenameInput').value.trim();
+  const activeS  = document.querySelector('.color-swatch.active');
+  const newColor = activeS ? activeS.dataset.color : document.getElementById('colColorCustom').value;
+  if (!newTitle) return;
+  col.title = newTitle;
+  col.color = newColor;
+  if (isConnected) {
+    await sb.from('columns').update({title: newTitle, color: newColor}).eq('id', editingColId);
+  } else {
+    saveFallback();
   }
+  closeModal('colModal');
+  renderBoard();
+  toast('Column updated', '✓');
+}
+
+async function deleteCol() {
+  const col = columns.find(c => c.id === editingColId);
+  if (!col) return;
+  if (!confirm(`Delete "${col.title}" and all its cards? This cannot be undone.`)) return;
+  if (isConnected) {
+    await sb.from('cards').delete().eq('column_id', editingColId);
+    await sb.from('columns').delete().eq('id', editingColId);
+  }
+  cards   = cards.filter(c => c.column_id !== editingColId);
+  columns = columns.filter(c => c.id !== editingColId);
+  if (!isConnected) saveFallback();
+  closeModal('colModal');
+  renderBoard();
+  renderStats();
+  toast('Column deleted');
+}
+
+function pickSwatch(el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('colColorCustom').value = el.dataset.color;
+}
+
+function onCustomColor(val) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
 }
 
 // ── TOAST ──
@@ -940,7 +1020,7 @@ function toast(msg, icon='ℹ') {
 
 // ── KEYBOARD ──
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeModal('cardModal'); }
+  if (e.key === 'Escape') { closeModal('cardModal'); closeModal('colModal'); }
   if ((e.metaKey||e.ctrlKey) && e.key === 'k') { e.preventDefault(); document.getElementById('searchInput').focus(); }
   if ((e.metaKey||e.ctrlKey) && e.key === 'n') { e.preventDefault(); openNewCard(); }
 });
