@@ -1489,22 +1489,34 @@ async function saveCard() {
       toast('Card updated', '✓');
 
       // ── LOG EACH CHANGED FIELD ──
+      const actLogs = [];
       if (prev.title && prev.title !== data.title)
-        await logActivity('title', {title: data.title, old: prev.title});
+        actLogs.push(logActivity('title', {title: data.title, old: prev.title}));
+
+      if ((prev.description||'') !== (data.description||''))
+        actLogs.push(logActivity('description', {preview: data.description.slice(0,60)}));
 
       if (prev.assignee !== data.assignee) {
         const toMember = TEAM_MEMBERS.find(m=>m.id===data.assignee);
-        await logActivity('assigned', {to: toMember?.name || data.assignee || 'nobody'});
+        actLogs.push(logActivity('assigned', {to: toMember?.name || data.assignee || 'nobody'}));
       }
 
       if ((prev.due_date||'') !== (data.due_date||''))
-        await logActivity(data.due_date ? 'due_set' : 'due_clear', {date: data.due_date||''});
+        actLogs.push(logActivity(data.due_date ? 'due_set' : 'due_clear', {date: data.due_date||''}));
 
       if ((prev.priority||'low') !== (data.priority||'low'))
-        await logActivity('priority', {priority: data.priority});
+        actLogs.push(logActivity('priority', {priority: data.priority}));
 
       if ((prev.cover_url||'') !== (cover_url||''))
-        await logActivity(cover_url ? 'cover_add' : 'cover_del', {});
+        actLogs.push(logActivity(cover_url ? 'cover_add' : 'cover_del', {}));
+
+      const prevLabels = JSON.stringify([...(prev.labels||[])].sort());
+      const newLabels  = JSON.stringify([...data.labels].sort());
+      if (prevLabels !== newLabels)
+        actLogs.push(logActivity('tags', {tags: data.labels.join(', ') || 'none'}));
+
+      // Fire all activity logs in parallel
+      await Promise.all(actLogs);
 
       // Notify newly assigned member
       if (data.assignee && data.assignee !== prev.assignee && data.assignee !== currentUser?.id) {
@@ -1583,18 +1595,24 @@ async function deleteCard() {
   toast('Card deleted', '🗑');
 
   if (isConnected) {
-    _suppressRealtime = true; // prevent realtime from re-adding the card
+    _suppressRealtime = true;
     try {
-      // Log before delete so activity record gets the card_id
-      await sb.from('activity').insert({
-        card_id: cardId, project_id: currentProjectId,
-        user_id: currentUser?.id, action: 'deleted',
-        meta: { author_name: currentUser?.user_metadata?.full_name || currentUser?.email, title: card?.title }
-      }).catch(() => {});
-      await sb.from('notifications').delete().eq('card_id', cardId).catch(() => {});
-      await sb.from('cards').delete().eq('id', cardId);
+      // Must delete FK-dependent rows FIRST before deleting the card
+      await sb.from('activity').delete().eq('card_id', cardId);
+      await sb.from('notifications').delete().eq('card_id', cardId);
+      const {error} = await sb.from('cards').delete().eq('id', cardId);
+      if (error) {
+        // Delete failed — restore the card locally
+        console.error('Delete failed:', error);
+        toast('Delete failed: ' + error.message, '✕');
+        const {data: restored} = await sb.from('cards').select('*').eq('id', cardId).single();
+        if (restored) { cards.push(restored); renderBoard(); renderStats(); }
+      }
+    } catch(e) {
+      console.error('Delete error:', e);
+      toast('Delete failed — please try again', '✕');
     } finally {
-      setTimeout(() => { _suppressRealtime = false; }, 1000);
+      setTimeout(() => { _suppressRealtime = false; }, 1200);
     }
   } else {
     saveFallback();
@@ -2013,17 +2031,19 @@ function initTheme() {
 
 // Map of action → { icon, cls, label fn }
 const ACT_MAP = {
-  comment:   { icon:'💬', cls:'act-comment',  label: m => `commented` },
-  created:   { icon:'✨', cls:'act-created',  label: m => `created this card` },
-  moved:     { icon:'↔',  cls:'act-moved',    label: m => `moved to <strong>${m.to_col||'column'}</strong>${m.from_col?' from '+m.from_col:''}` },
-  assigned:  { icon:'👤', cls:'act-assigned', label: m => m.to ? `assigned to <strong>${m.to}</strong>` : `unassigned` },
-  due_set:   { icon:'📅', cls:'act-due',      label: m => `set due date to <strong>${m.date||'none'}</strong>` },
-  due_clear: { icon:'📅', cls:'act-due',      label: m => `cleared the due date` },
-  cover_add: { icon:'🖼',  cls:'act-cover',    label: m => `added a cover image` },
-  cover_del: { icon:'🖼',  cls:'act-cover',    label: m => `removed the cover image` },
-  priority:  { icon:'🚦', cls:'act-priority', label: m => `set priority to <strong>${m.priority||'low'}</strong>` },
-  title:     { icon:'✏️', cls:'act-title',    label: m => `renamed to <strong>${m.title||''}</strong>` },
-  deleted:   { icon:'🗑', cls:'act-deleted',  label: m => `deleted this card` },
+  comment:     { icon:'💬', cls:'act-comment',  label: m => `commented` },
+  created:     { icon:'✨', cls:'act-created',  label: m => `created this card` },
+  moved:       { icon:'↔',  cls:'act-moved',    label: m => `moved to <strong>${m.to_col||'column'}</strong>${m.from_col?' from <em>'+m.from_col+'</em>':''}` },
+  assigned:    { icon:'👤', cls:'act-assigned', label: m => m.to ? `assigned to <strong>${m.to}</strong>` : `removed assignee` },
+  due_set:     { icon:'📅', cls:'act-due',      label: m => `set due date to <strong>${m.date||'none'}</strong>` },
+  due_clear:   { icon:'📅', cls:'act-due',      label: m => `cleared the due date` },
+  cover_add:   { icon:'🖼',  cls:'act-cover',    label: m => `added a cover image` },
+  cover_del:   { icon:'🖼',  cls:'act-cover',    label: m => `removed the cover image` },
+  priority:    { icon:'🚦', cls:'act-priority', label: m => `set priority to <strong>${m.priority||'low'}</strong>` },
+  title:       { icon:'✏️', cls:'act-title',    label: m => `renamed to <strong>${m.title||''}</strong>` },
+  description: { icon:'📝', cls:'act-title',    label: m => `updated the description` },
+  tags:        { icon:'🏷', cls:'act-assigned', label: m => `changed tags to <strong>${m.tags||'none'}</strong>` },
+  deleted:     { icon:'🗑', cls:'act-deleted',  label: m => `deleted this card` },
 };
 
 // Write activity entry to Supabase
