@@ -1529,13 +1529,14 @@ async function saveCard() {
         rows.push({...baseRow, action:'assigned', meta:{author_name:name, to: toMember?.name || data.assignee || 'nobody'}});
       }
 
-      if ((prev.due_date||'') !== (data.due_date||''))
+      if ((prev.due_date||'') !== (data.due_date||'')) {
         const fmtDue = data.due_date
           ? (data.due_date.includes('T')
               ? new Date(data.due_date).toLocaleString('en-PH', {month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true})
               : new Date(data.due_date + 'T00:00').toLocaleString('en-PH', {month:'long',day:'numeric',year:'numeric'}))
           : '';
         rows.push({...baseRow, action: data.due_date ? 'due_set' : 'due_clear', meta:{author_name:name, date:fmtDue}});
+      }
 
       if ((prev.priority||'low') !== (data.priority||'low'))
         rows.push({...baseRow, action:'priority', meta:{author_name:name, priority:data.priority}});
