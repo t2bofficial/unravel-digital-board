@@ -1395,7 +1395,19 @@ async function openEditCard(cardId) {
   pendingCoverUrl = null; pendingCoverFile = null;
   document.getElementById('cTitle').value = card.title;
   document.getElementById('cDesc').value = card.description || '';
-  document.getElementById('cDue').value = card.due_date || '';
+  // datetime-local needs YYYY-MM-DDTHH:MM format exactly
+  const rawDue = card.due_date || '';
+  let dueFmt = '';
+  if (rawDue) {
+    if (rawDue.includes('T')) {
+      // Already has time — trim seconds if present (HH:MM:SS → HH:MM)
+      dueFmt = rawDue.slice(0, 16);
+    } else {
+      // Date only (YYYY-MM-DD) — append default time 12:00
+      dueFmt = rawDue + 'T12:00';
+    }
+  }
+  document.getElementById('cDue').value = dueFmt;
   populateAssigneeSelect();
   document.getElementById('cAssignee').value = card.assignee || '';
   document.getElementById('cPriority').value = card.priority || 'low';
