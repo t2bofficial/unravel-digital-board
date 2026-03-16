@@ -466,7 +466,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
             <div class="detail-section-title">Assignee</div>
             <select class="field-select" id="cAssignee" style="font-size:12px;padding:7px 10px;">
               <option value="">Unassigned</option>
-              <option value="HE">Heinrich</option>
             </select>
           </div>
           <div class="detail-section">
@@ -603,10 +602,34 @@ const SYSTEM_TAGS = [
   {key:'onhold',    label:'On Hold',       cls:'tag-onhold'},
 ];
 
-const MEMBER_BG = {
-  HE:'linear-gradient(135deg,#4f6ef7,#7c3aed)',
-};
-const MEMBERS = ['HE'];
+// Dynamic member list — populated from Supabase Auth at runtime
+let TEAM_MEMBERS = []; // [{id, name, initials, color}]
+
+const AVATAR_COLORS = [
+  'linear-gradient(135deg,#4f6ef7,#7c3aed)',
+  'linear-gradient(135deg,#10b981,#059669)',
+  'linear-gradient(135deg,#f59e0b,#d97706)',
+  'linear-gradient(135deg,#ef4444,#dc2626)',
+  'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+  'linear-gradient(135deg,#06b6d4,#0891b2)',
+  'linear-gradient(135deg,#f97316,#ea580c)',
+  'linear-gradient(135deg,#ec4899,#db2777)',
+  'linear-gradient(135deg,#84cc16,#65a30d)',
+  'linear-gradient(135deg,#14b8a6,#0d9488)',
+];
+
+function getInitials(name) {
+  if (!name) return '??';
+  return name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function getMemberColor(index) {
+  return AVATAR_COLORS[index % AVATAR_COLORS.length];
+}
+
+function getMemberByAssignee(assigneeVal) {
+  return TEAM_MEMBERS.find(m => m.id === assigneeVal || m.initials === assigneeVal);
+}
 
 // ── STATE ──
 let projects   = [];   // [{id, name, slug}]
@@ -740,6 +763,7 @@ async function loadAndStart() {
     document.getElementById('rtBadge').style.display = 'inline-flex';
     document.getElementById('newCardBtn').disabled = false;
     subscribeRealtime();
+    await loadTeamMembers(); // load real user list from profiles table
   } catch(e) {
     console.error(e);
     setBanner(false, 'Could not load board data — ' + e.message);
@@ -982,7 +1006,10 @@ function buildCard(card, col) {
     dueHtml = `<span class="card-pill ${cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${card.due_date}</span>`;
   }
 
-  const as = card.assignee ? `<div class="card-assignee" style="background:${MEMBER_BG[card.assignee]||'#4f6ef7'}">${card.assignee}</div>` : '';
+  const assigneeMember = card.assignee ? getMemberByAssignee(card.assignee) : null;
+  const as = assigneeMember
+    ? `<div class="card-assignee" style="background:${assigneeMember.color}" title="${assigneeMember.name}">${assigneeMember.initials}</div>`
+    : (card.assignee ? `<div class="card-assignee" style="background:#4f6ef7" title="${card.assignee}">${getInitials(card.assignee)}</div>` : '');
   const pd = {high:'var(--danger)',med:'var(--warn)',low:'var(--success)'}[card.priority||'low'];
   const hasComments = (card.comment_count||0) > 0;
 
@@ -1039,9 +1066,10 @@ function renderStats() {
 }
 
 function renderMembers() {
-  const vis = MEMBERS.slice(0,5), extra = MEMBERS.length - 5;
+  const vis = TEAM_MEMBERS.slice(0,6);
+  const extra = TEAM_MEMBERS.length - 6;
   document.getElementById('memberStack').innerHTML =
-    vis.map(m => `<div class="avatar-chip" style="background:${MEMBER_BG[m]}" title="${m}">${m}</div>`).join('') +
+    vis.map(m => `<div class="avatar-chip" style="background:${m.color}" title="${m.name}">${m.initials}</div>`).join('') +
     (extra > 0 ? `<div class="member-count">+${extra}</div>` : '');
 }
 
@@ -1097,7 +1125,10 @@ function openNewCard(colId) {
   document.getElementById('cTitle').value = '';
   document.getElementById('cDesc').value = '';
   document.getElementById('cDue').value = '';
-  document.getElementById('cAssignee').value = 'HE';
+  populateAssigneeSelect();
+  // Pre-select current user
+  const me = TEAM_MEMBERS.find(m => m.id === currentUser?.id);
+  document.getElementById('cAssignee').value = me ? me.id : '';
   document.getElementById('cPriority').value = 'low';
   document.getElementById('modalMeta').textContent = '';
   document.getElementById('thumbWrap').style.display = 'none';
@@ -1122,6 +1153,7 @@ async function openEditCard(cardId) {
   document.getElementById('cTitle').value = card.title;
   document.getElementById('cDesc').value = card.description || '';
   document.getElementById('cDue').value = card.due_date || '';
+  populateAssigneeSelect();
   document.getElementById('cAssignee').value = card.assignee || '';
   document.getElementById('cPriority').value = card.priority || 'low';
   document.getElementById('modalMeta').textContent = `ID: ${card.id.slice(0,8)}`;
@@ -1590,6 +1622,70 @@ async function lbRemoveCover() {
   renderBoard();
   closeLightbox();
   toast('Cover removed', '🖼');
+}
+
+
+// ── TEAM MEMBERS (dynamic from Supabase) ──
+async function loadTeamMembers() {
+  if (!isConnected) {
+    // Fallback: just use current user
+    TEAM_MEMBERS = [{
+      id: currentUser?.id || 'local',
+      name: currentUser?.user_metadata?.full_name || currentUser?.email || 'You',
+      initials: getInitials(currentUser?.user_metadata?.full_name || currentUser?.email || 'You'),
+      email: currentUser?.email || '',
+      color: AVATAR_COLORS[0],
+    }];
+    renderMembers();
+    return;
+  }
+
+  try {
+    // Use the admin API via edge function OR just query a profiles table
+    // Since we don't have a profiles table yet, we'll use the auth.users view
+    // Supabase exposes this via the admin API — for client-side, use a profiles approach
+    // WORKAROUND: store user profiles in a public 'profiles' table on sign-up
+    const {data, error} = await sb.from('profiles').select('*').order('created_at');
+
+    if (error || !data || data.length === 0) {
+      // Fall back to just showing current user
+      TEAM_MEMBERS = [{
+        id: currentUser?.id,
+        name: currentUser?.user_metadata?.full_name || currentUser?.email,
+        initials: getInitials(currentUser?.user_metadata?.full_name || currentUser?.email),
+        email: currentUser?.email,
+        color: AVATAR_COLORS[0],
+      }];
+    } else {
+      TEAM_MEMBERS = data.map((p, i) => ({
+        id: p.id,
+        name: p.full_name || p.email,
+        initials: getInitials(p.full_name || p.email),
+        email: p.email,
+        color: getMemberColor(i),
+      }));
+    }
+  } catch(e) {
+    TEAM_MEMBERS = [{
+      id: currentUser?.id,
+      name: currentUser?.user_metadata?.full_name || currentUser?.email,
+      initials: getInitials(currentUser?.user_metadata?.full_name || currentUser?.email),
+      email: currentUser?.email,
+      color: AVATAR_COLORS[0],
+    }];
+  }
+
+  renderMembers();
+}
+
+function populateAssigneeSelect() {
+  const sel = document.getElementById('cAssignee');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Unassigned</option>' +
+    TEAM_MEMBERS.map(m =>
+      `<option value="${m.id}">${m.name}${m.email ? ' (' + m.email.split('@')[0] + ')' : ''}</option>`
+    ).join('');
+  if (current) sel.value = current;
 }
 
 // ── KEYBOARD ──
