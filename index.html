@@ -1480,43 +1480,58 @@ async function saveCard() {
   };
 
   if (isConnected) {
-    _suppressRealtime = true; // we're making the change — don't re-render from realtime
+    _suppressRealtime = true;
     if (editingCardId) {
-      const {error} = await sb.from('cards').update(data).eq('id', editingCardId);
-      if (error) { toast('Save failed: ' + error.message, '✕'); saveBtn.disabled=false; saveBtn.textContent='Save Card'; return; }
-      const local = cards.find(c=>c.id===editingCardId);
-      if (local) Object.assign(local, data);
+      // Snapshot cardId NOW — editingCardId may change later
+      const cardId = editingCardId;
+
+      const {error} = await sb.from('cards').update(data).eq('id', cardId);
+      if (error) { toast('Save failed: ' + error.message, '✕'); saveBtn.disabled=false; saveBtn.textContent='Save Card'; _suppressRealtime=false; return; }
       toast('Card updated', '✓');
 
-      // ── LOG EACH CHANGED FIELD ──
-      const actLogs = [];
+      // ── DIFF + LOG — compare prev (snapshotted before save) vs data ──
+      // Build activity rows directly — don't use logActivity() to avoid closure issues
+      const name = currentUser?.user_metadata?.full_name || currentUser?.email || 'Someone';
+      const baseRow = {
+        card_id: cardId, project_id: currentProjectId,
+        user_id: currentUser?.id, meta: {}
+      };
+      const rows = [];
+
       if (prev.title && prev.title !== data.title)
-        actLogs.push(logActivity('title', {title: data.title, old: prev.title}));
+        rows.push({...baseRow, action:'title', meta:{author_name:name, title:data.title, old:prev.title}});
 
       if ((prev.description||'') !== (data.description||''))
-        actLogs.push(logActivity('description', {preview: data.description.slice(0,60)}));
+        rows.push({...baseRow, action:'description', meta:{author_name:name, preview:(data.description||'').slice(0,80)}});
 
-      if (prev.assignee !== data.assignee) {
+      if ((prev.assignee||'') !== (data.assignee||'')) {
         const toMember = TEAM_MEMBERS.find(m=>m.id===data.assignee);
-        actLogs.push(logActivity('assigned', {to: toMember?.name || data.assignee || 'nobody'}));
+        rows.push({...baseRow, action:'assigned', meta:{author_name:name, to: toMember?.name || data.assignee || 'nobody'}});
       }
 
       if ((prev.due_date||'') !== (data.due_date||''))
-        actLogs.push(logActivity(data.due_date ? 'due_set' : 'due_clear', {date: data.due_date||''}));
+        rows.push({...baseRow, action: data.due_date ? 'due_set' : 'due_clear', meta:{author_name:name, date:data.due_date||''}});
 
       if ((prev.priority||'low') !== (data.priority||'low'))
-        actLogs.push(logActivity('priority', {priority: data.priority}));
+        rows.push({...baseRow, action:'priority', meta:{author_name:name, priority:data.priority}});
 
       if ((prev.cover_url||'') !== (cover_url||''))
-        actLogs.push(logActivity(cover_url ? 'cover_add' : 'cover_del', {}));
+        rows.push({...baseRow, action: cover_url ? 'cover_add' : 'cover_del', meta:{author_name:name}});
 
       const prevLabels = JSON.stringify([...(prev.labels||[])].sort());
       const newLabels  = JSON.stringify([...data.labels].sort());
       if (prevLabels !== newLabels)
-        actLogs.push(logActivity('tags', {tags: data.labels.join(', ') || 'none'}));
+        rows.push({...baseRow, action:'tags', meta:{author_name:name, tags:data.labels.join(', ')||'none'}});
 
-      // Fire all activity logs in parallel
-      await Promise.all(actLogs);
+      // Bulk insert all activity rows in one request
+      if (rows.length > 0) {
+        const {error: actErr} = await sb.from('activity').insert(rows);
+        if (actErr) console.warn('Activity log failed:', actErr.message);
+      }
+
+      // Update local state AFTER diffing
+      const local = cards.find(c=>c.id===cardId);
+      if (local) Object.assign(local, data);
 
       // Notify newly assigned member
       if (data.assignee && data.assignee !== prev.assignee && data.assignee !== currentUser?.id) {
@@ -1524,8 +1539,8 @@ async function saveCard() {
         if (assignedMember) {
           await createNotification({
             type: 'assigned', to_user_id: assignedMember.id,
-            from_name: currentUser?.user_metadata?.full_name || currentUser?.email,
-            card_id: editingCardId, card_title: data.title, project_id: currentProjectId,
+            from_name: name,
+            card_id: cardId, card_title: data.title, project_id: currentProjectId,
           });
         }
       }
