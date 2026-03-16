@@ -1425,10 +1425,12 @@ async function saveCard() {
   const saveBtn = document.getElementById('saveCardBtn');
   saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
 
-  // Handle image upload — store as base64 in cover_url (simple, no Storage needed)
-  let cover_url = editingCardId ? (cards.find(c=>c.id===editingCardId)?.cover_url || null) : null;
+  // Snapshot previous state for diffing
+  const prev = editingCardId ? (cards.find(c=>c.id===editingCardId) || {}) : {};
+
+  let cover_url = editingCardId ? (prev.cover_url || null) : null;
   if (pendingCoverUrl) cover_url = pendingCoverUrl;
-  if (pendingCoverUrl === '') cover_url = null; // explicitly removed
+  if (pendingCoverUrl === '') cover_url = null;
 
   const data = {
     title,
@@ -1447,16 +1449,70 @@ async function saveCard() {
     if (editingCardId) {
       const {error} = await sb.from('cards').update(data).eq('id', editingCardId);
       if (error) { toast('Save failed: ' + error.message, '✕'); saveBtn.disabled=false; saveBtn.textContent='Save Card'; return; }
-      // Update local state immediately
       const local = cards.find(c=>c.id===editingCardId);
       if (local) Object.assign(local, data);
       toast('Card updated', '✓');
+
+      // ── LOG EACH CHANGED FIELD ──
+      if (prev.title && prev.title !== data.title)
+        await logActivity('title', {title: data.title, old: prev.title});
+
+      if (prev.assignee !== data.assignee) {
+        const toMember = TEAM_MEMBERS.find(m=>m.id===data.assignee);
+        await logActivity('assigned', {to: toMember?.name || data.assignee || 'nobody'});
+      }
+
+      if ((prev.due_date||'') !== (data.due_date||''))
+        await logActivity(data.due_date ? 'due_set' : 'due_clear', {date: data.due_date||''});
+
+      if ((prev.priority||'low') !== (data.priority||'low'))
+        await logActivity('priority', {priority: data.priority});
+
+      if ((prev.cover_url||'') !== (cover_url||''))
+        await logActivity(cover_url ? 'cover_add' : 'cover_del', {});
+
+      // Notify newly assigned member
+      if (data.assignee && data.assignee !== prev.assignee && data.assignee !== currentUser?.id) {
+        const assignedMember = TEAM_MEMBERS.find(m => m.id === data.assignee);
+        if (assignedMember) {
+          await createNotification({
+            type: 'assigned', to_user_id: assignedMember.id,
+            from_name: currentUser?.user_metadata?.full_name || currentUser?.email,
+            card_id: editingCardId, card_title: data.title, project_id: currentProjectId,
+          });
+        }
+      }
+
     } else {
       const maxPos = Math.max(0, ...cards.filter(c=>c.column_id===data.column_id).map(c=>c.position||0));
       const {data:newCard, error} = await sb.from('cards').insert({...data, position: maxPos+1}).select().single();
       if (error) { toast('Save failed: ' + error.message, '✕'); saveBtn.disabled=false; saveBtn.textContent='Save Card'; return; }
       cards.push(newCard);
       toast('Card created', '✓');
+
+      // Log card creation
+      const savedId = editingCardId;
+      editingCardId = newCard.id;
+      await logActivity('created', {title: data.title});
+      if (data.cover_url) await logActivity('cover_add', {});
+      if (data.assignee) {
+        const toMember = TEAM_MEMBERS.find(m=>m.id===data.assignee);
+        await logActivity('assigned', {to: toMember?.name || data.assignee});
+      }
+      if (data.due_date) await logActivity('due_set', {date: data.due_date});
+      editingCardId = savedId;
+
+      // Notify assignee on new card
+      if (data.assignee && data.assignee !== currentUser?.id) {
+        const assignedMember = TEAM_MEMBERS.find(m => m.id === data.assignee);
+        if (assignedMember) {
+          await createNotification({
+            type: 'assigned', to_user_id: assignedMember.id,
+            from_name: currentUser?.user_metadata?.full_name || currentUser?.email,
+            card_id: newCard.id, card_title: data.title, project_id: currentProjectId,
+          });
+        }
+      }
     }
   } else {
     if (editingCardId) {
