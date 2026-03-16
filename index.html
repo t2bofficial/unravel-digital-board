@@ -1009,19 +1009,51 @@ async function seedDefaultProjects() {
 }
 
 // ── REALTIME ──
+let _suppressRealtime = false; // true while WE are saving/deleting
+
 function subscribeRealtime() {
   sb.channel('board-changes')
     .on('postgres_changes', {event:'*', schema:'public', table:'cards'}, async payload => {
-      // Refresh cards from DB on any change
-      const {data} = await sb.from('cards').select('*').eq('is_archived', false).order('position');
-      cards = data || [];
-      renderBoard();
-      renderStats();
-      if (payload.eventType !== 'UPDATE' || payload.new?.id !== editingCardId) {
-        // Only show toast for changes from other users (simple heuristic)
+      if (_suppressRealtime) return; // we triggered this — ignore
+
+      if (payload.eventType === 'DELETE') {
+        // Remove deleted card locally without re-fetching
+        const deletedId = payload.old?.id;
+        if (deletedId) {
+          cards = cards.filter(c => c.id !== deletedId);
+          renderBoard(); renderStats();
+        }
+        return;
+      }
+
+      if (payload.eventType === 'INSERT') {
+        // Another user added a card — add it locally
+        const newCard = payload.new;
+        if (newCard && !cards.find(c => c.id === newCard.id)) {
+          cards.push(newCard);
+          renderBoard(); renderStats();
+        }
+        return;
+      }
+
+      if (payload.eventType === 'UPDATE') {
+        // Another user updated a card — patch locally
+        const updated = payload.new;
+        if (updated) {
+          const idx = cards.findIndex(c => c.id === updated.id);
+          if (idx >= 0) cards[idx] = {...cards[idx], ...updated};
+          else cards.push(updated);
+          // If this card is open in the modal, show a subtle notice
+          if (updated.id === editingCardId) {
+            toast('Card was updated by a teammate', 'ℹ');
+          }
+          renderBoard(); renderStats();
+        }
+        return;
       }
     })
-    .on('postgres_changes', {event:'*', schema:'public', table:'columns'}, async () => {
+    .on('postgres_changes', {event:'*', schema:'public', table:'columns'}, async payload => {
+      if (_suppressRealtime) return;
       const {data} = await sb.from('columns').select('*').order('position');
       columns = data || [];
       renderBoard();
@@ -1289,12 +1321,14 @@ async function dropCard(targetColId) {
   if (isConnected) {
     const {error} = await sb.from('cards').update({column_id: targetColId}).eq('id', dragCardId);
     if (error) { toast('Failed to move card', '✕'); return; }
-    // Log move activity
+    // Log move activity — suppress realtime echo
+    _suppressRealtime = true;
     const fromColName = columns.find(c=>c.id===prevColId)?.title || '';
     const savedEditing = editingCardId;
     editingCardId = dragCardId;
     await logActivity('moved', {to_col: colName, from_col: fromColName});
     editingCardId = savedEditing;
+    setTimeout(() => { _suppressRealtime = false; }, 800);
   } else {
     saveFallback();
   }
@@ -1446,6 +1480,7 @@ async function saveCard() {
   };
 
   if (isConnected) {
+    _suppressRealtime = true; // we're making the change — don't re-render from realtime
     if (editingCardId) {
       const {error} = await sb.from('cards').update(data).eq('id', editingCardId);
       if (error) { toast('Save failed: ' + error.message, '✕'); saveBtn.disabled=false; saveBtn.textContent='Save Card'; return; }
@@ -1528,6 +1563,7 @@ async function saveCard() {
 
   saveBtn.disabled = false; saveBtn.textContent = 'Save Card';
   pendingCoverUrl = null; pendingCoverFile = null;
+  setTimeout(() => { _suppressRealtime = false; }, 1000);
   closeModal('cardModal');
   renderBoard(); renderStats();
 }
@@ -1537,17 +1573,32 @@ async function deleteCard() {
   if (!editingCardId) return;
   const card = cards.find(c=>c.id===editingCardId);
   if (!confirm(`Delete "${card?.title}"? This cannot be undone.`)) return;
-  if (isConnected) {
-    await logActivity('deleted', {title: card?.title});
-    await sb.from('notifications').delete().eq('card_id', editingCardId).catch(()=>{});
-    await sb.from('cards').delete().eq('id', editingCardId);
-    // Activity stays for audit trail — don't delete it
-  }
-  cards = cards.filter(c=>c.id!==editingCardId);
-  if (!isConnected) saveFallback();
+
+  const cardId = editingCardId;
+
+  // Remove from local state immediately — feels instant
+  cards = cards.filter(c => c.id !== cardId);
   closeModal('cardModal');
   renderBoard(); renderStats();
   toast('Card deleted', '🗑');
+
+  if (isConnected) {
+    _suppressRealtime = true; // prevent realtime from re-adding the card
+    try {
+      // Log before delete so activity record gets the card_id
+      await sb.from('activity').insert({
+        card_id: cardId, project_id: currentProjectId,
+        user_id: currentUser?.id, action: 'deleted',
+        meta: { author_name: currentUser?.user_metadata?.full_name || currentUser?.email, title: card?.title }
+      }).catch(() => {});
+      await sb.from('notifications').delete().eq('card_id', cardId).catch(() => {});
+      await sb.from('cards').delete().eq('id', cardId);
+    } finally {
+      setTimeout(() => { _suppressRealtime = false; }, 1000);
+    }
+  } else {
+    saveFallback();
+  }
 }
 
 // ── DELETE TAG ──
