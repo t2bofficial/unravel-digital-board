@@ -867,6 +867,7 @@ async function signIn() {
     btn.disabled = false; btn.textContent = 'Sign In';
   } else {
     currentUser = data.user;
+    _appStarted = false; // allow onSignedIn to run fresh
     onSignedIn();
   }
 }
@@ -904,8 +905,9 @@ async function sendMagicLink(emailFieldId, msgId) {
 }
 
 function onSignedIn() {
+  if (_appStarted) return; // prevent double load
+  _appStarted = true;
   showApp();
-  // Update header avatar with user initials
   const meta = currentUser?.user_metadata;
   const name = meta?.full_name || currentUser?.email || '';
   const initials = name.split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'ME';
@@ -920,33 +922,9 @@ async function signOut() {
   showAuth();
 }
 
-// Listen for auth state changes (handles magic link redirect)
-sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-    currentUser = null;
-    showAuth();
-    return;
-  }
-  if (event === 'TOKEN_REFRESHED') {
-    // Silently update current user — no re-render needed
-    currentUser = session?.user || currentUser;
-    return;
-  }
-  if (session?.user) {
-    currentUser = session.user;
-    // Only call onSignedIn if app isn't already loaded
-    if (document.getElementById('appScreen').style.display === 'none' ||
-        document.getElementById('appScreen').style.display === '') {
-      onSignedIn();
-    } else {
-      currentUser = session.user;
-    }
-  } else if (!session) {
-    showAuth();
-  }
-});
-
 // ── INIT ──
+let _appStarted = false; // prevent double-start
+
 async function init() {
   const keysOk = SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_KEY !== 'YOUR_SUPABASE_PUBLISHABLE_KEY';
   if (!keysOk) {
@@ -955,10 +933,33 @@ async function init() {
     loadFallback();
     return;
   }
-  // Auth state listener handles showing auth or app
-  // Just show auth by default — onAuthStateChange will fire if already logged in
-  showAuth();
+
+  // Check if there's already an active session (returning user / page refresh)
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    onSignedIn();
+  } else {
+    showAuth();
+  }
 }
+
+// Listen for auth state changes — only for magic link redirects and sign-outs
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session?.user && !_appStarted) {
+    // Magic link redirect or new sign-in from another tab
+    currentUser = session.user;
+    onSignedIn();
+  }
+  if (event === 'TOKEN_REFRESHED' && session?.user) {
+    currentUser = session.user; // silently update
+  }
+  if (event === 'SIGNED_OUT') {
+    currentUser = null;
+    _appStarted = false;
+    showAuth();
+  }
+});
 
 async function loadAndStart() {
   try {
