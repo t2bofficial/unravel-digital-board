@@ -766,7 +766,14 @@ const SUPABASE_KEY = 'sb_publishable_CN32lHpAMVdt5zAr3TyssA_lRLPPrCv';
 // ALTER TABLE cards ADD COLUMN IF NOT EXISTS comment_count INT DEFAULT 0;
 // ═══════════════════════════════════════════════
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storageKey: 'unravel-auth',
+  }
+});
 
 // ── CONSTANTS ──
 const SYSTEM_TAGS = [
@@ -915,10 +922,26 @@ async function signOut() {
 
 // Listen for auth state changes (handles magic link redirect)
 sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+    currentUser = null;
+    showAuth();
+    return;
+  }
+  if (event === 'TOKEN_REFRESHED') {
+    // Silently update current user — no re-render needed
+    currentUser = session?.user || currentUser;
+    return;
+  }
   if (session?.user) {
     currentUser = session.user;
-    onSignedIn();
-  } else {
+    // Only call onSignedIn if app isn't already loaded
+    if (document.getElementById('appScreen').style.display === 'none' ||
+        document.getElementById('appScreen').style.display === '') {
+      onSignedIn();
+    } else {
+      currentUser = session.user;
+    }
+  } else if (!session) {
     showAuth();
   }
 });
