@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Unravel Board — Creative Ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg:#08090d; --surface:#0f1117; --surface2:#161922; --surface3:#1e2230;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.11);
+  --accent:#4f6ef7; --accent2:#7c3aed; --glow:rgba(79,110,247,0.22);
+  --text:#e6e8f0; --muted:#5a6275; --muted2:#8892a4;
+  --danger:#ef4444; --warn:#f59e0b; --success:#10b981;
+  --r:9px; --r-lg:14px;
+  --shadow:0 4px 20px rgba(0,0,0,0.55); --shadow-lg:0 8px 40px rgba(0,0,0,0.75);
+  /* SYSTEM TAG COLORS */
+  --tag-complete:#10b981;    --tag-complete-bg:rgba(16,185,129,0.12);
+  --tag-prio:#ef4444;        --tag-prio-bg:rgba(239,68,68,0.12);
+  --tag-due:#f59e0b;         --tag-due-bg:rgba(245,158,11,0.12);
+  --tag-inprog:#4f6ef7;      --tag-inprog-bg:rgba(79,110,247,0.12);
+  --tag-qa:#8b5cf6;          --tag-qa-bg:rgba(139,92,246,0.12);
+  --tag-revisions:#f97316;   --tag-revisions-bg:rgba(249,115,22,0.12);
+  --tag-onhold:#6b7280;      --tag-onhold-bg:rgba(107,114,128,0.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 20% 0%,rgba(79,110,247,0.05),transparent 60%),radial-gradient(ellipse 50% 40% at 80% 100%,rgba(124,58,237,0.04),transparent 60%);pointer-events:none;z-index:0;}
+
+/* COLLAB BANNER */
+.collab-banner{background:linear-gradient(90deg,rgba(79,110,247,0.14),rgba(124,58,237,0.08));border-bottom:1px solid rgba(79,110,247,0.18);padding:7px 28px;display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--muted2);position:relative;z-index:10;}
+.collab-banner strong{color:var(--accent);}
+.collab-pulse{width:7px;height:7px;border-radius:50%;background:var(--warn);flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.4);}50%{box-shadow:0 0 0 5px rgba(245,158,11,0);}}
+.setup-link{margin-left:auto;color:var(--accent);cursor:pointer;text-decoration:underline;font-weight:500;white-space:nowrap;}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:54px;background:rgba(15,17,23,0.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;letter-spacing:-.3px;flex-shrink:0;}
+.logo-mark{width:27px;height:27px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;box-shadow:0 0 14px var(--glow);}
+.logo-sub{color:var(--muted);font-weight:400;font-size:12px;margin-left:2px;}
+.header-center{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:0 8px;flex:1;justify-content:center;}
+.header-center::-webkit-scrollbar{display:none;}
+.project-tab{padding:5px 13px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--muted2);background:transparent;font-family:inherit;white-space:nowrap;transition:all .14s;}
+.project-tab:hover{color:var(--text);background:var(--surface2);}
+.project-tab.active{color:var(--text);background:var(--surface2);border-color:var(--border2);}
+.header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:all .14s;border:none;}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 0 16px var(--glow);}
+.btn-primary:hover{background:#6278f9;transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border2);}
+.btn-ghost:hover{color:var(--text);background:var(--surface2);}
+.avatar-chip{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:#fff;cursor:pointer;border:2px solid var(--bg);}
+
+/* STATS */
+.stats-bar{display:flex;gap:14px;flex-wrap:wrap;padding:9px 28px;border-bottom:1px solid var(--border);background:rgba(15,17,23,0.5);position:relative;z-index:1;}
+.stat{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted2);}
+.stat-val{font-weight:600;color:var(--text);font-size:12.5px;}
+.stat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.stat-seg{width:18px;height:4px;border-radius:2px;background:var(--border2);display:inline-block;}
+.stat-seg.on{background:var(--success);}
+
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;justify-content:space-between;padding:11px 28px;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap;position:relative;z-index:1;}
+.toolbar-left{display:flex;align-items:center;gap:9px;}
+.board-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;letter-spacing:-.4px;}
+.board-badge{font-size:10px;padding:2px 8px;background:rgba(79,110,247,0.13);color:var(--accent);border-radius:20px;font-weight:600;letter-spacing:.3px;}
+.toolbar-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.search-box{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:6px 11px;transition:border-color .15s;}
+.search-box:focus-within{border-color:var(--accent);}
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);font-family:inherit;font-size:12px;width:150px;}
+.search-box input::placeholder{color:var(--muted);}
+.member-stack{display:flex;}
+.member-stack .avatar-chip{margin-left:-7px;}
+.member-stack .avatar-chip:first-child{margin-left:0;}
+.member-count{width:28px;height:28px;border-radius:50%;background:var(--surface3);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted2);margin-left:-7px;}
+
+/* BOARD */
+.board-wrap{padding:16px 28px 60px;overflow-x:auto;min-height:calc(100vh - 220px);position:relative;z-index:1;}
+.board{display:flex;gap:13px;align-items:flex-start;min-width:max-content;}
+
+/* COLUMN */
+.col{width:286px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;transition:box-shadow .2s;}
+.col.drag-over{box-shadow:0 0 0 2px var(--accent),var(--shadow-lg);}
+.col-header{display:flex;align-items:center;justify-content:space-between;padding:12px 13px 10px;border-bottom:1px solid var(--border);}
+.col-title-wrap{display:flex;align-items:center;gap:7px;}
+.col-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.col-title{font-family:'Syne',sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.15px;text-transform:uppercase;}
+.col-count{font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;background:var(--surface2);color:var(--muted2);}
+.col-actions{display:flex;gap:2px;}
+.col-btn{width:24px;height:24px;border-radius:6px;background:transparent;border:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s;font-family:inherit;}
+.col-btn:hover{background:var(--surface2);color:var(--text);}
+.col-body{padding:8px;min-height:50px;}
+
+/* CARD */
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px 10px 15px;margin-bottom:6px;cursor:grab;transition:all .15s;position:relative;animation:cardIn .18s ease;}
+@keyframes cardIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:translateY(0);}}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:2px 0 0 2px;}
+.card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--shadow);}
+.card.dragging{opacity:.3;cursor:grabbing;}
+
+/* TAGS */
+.card-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px;}
+.tag{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;letter-spacing:.35px;padding:2px 6px;border-radius:4px;text-transform:uppercase;white-space:nowrap;}
+.tag-dot{width:4px;height:4px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.tag-complete  {background:var(--tag-complete-bg);  color:var(--tag-complete);}
+.tag-prio      {background:var(--tag-prio-bg);      color:var(--tag-prio);}
+.tag-due       {background:var(--tag-due-bg);       color:var(--tag-due);}
+.tag-inprog    {background:var(--tag-inprog-bg);    color:var(--tag-inprog);}
+.tag-qa        {background:var(--tag-qa-bg);        color:var(--tag-qa);}
+.tag-revisions {background:var(--tag-revisions-bg); color:var(--tag-revisions);}
+.tag-onhold    {background:var(--tag-onhold-bg);    color:var(--tag-onhold);}
+.tag-custom    {background:rgba(99,102,241,0.12);   color:#a5b4fc;}
+
+.card-title{font-size:12.5px;font-weight:500;line-height:1.4;color:var(--text);margin-bottom:7px;}
+.card-desc{font-size:11px;color:var(--muted2);line-height:1.45;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.card-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.card-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.card-pill{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--muted2);padding:2px 5px;border-radius:4px;background:rgba(255,255,255,0.03);}
+.card-pill svg{width:9px;height:9px;}
+.due-overdue{color:var(--danger)!important;}
+.due-soon{color:var(--warn)!important;}
+.card-assignee{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:#fff;flex-shrink:0;}
+
+/* ADD CARD / COL */
+.add-card-btn{width:100%;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:var(--r);color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;transition:all .14s;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:3px;}
+.add-card-btn:hover{color:var(--text);border-color:var(--border2);background:rgba(255,255,255,.015);}
+.add-col{width:240px;flex-shrink:0;background:rgba(255,255,255,.015);border:1px dashed var(--border);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;gap:7px;padding:18px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:500;transition:all .14s;align-self:flex-start;min-height:70px;font-family:inherit;}
+.add-col:hover{color:var(--text);border-color:var(--border2);background:var(--surface);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .18s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);width:100%;max-width:580px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(8px);transition:transform .18s;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:19px 22px 14px;border-bottom:1px solid var(--border);gap:12px;}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;letter-spacing:-.3px;flex:1;}
+.modal-close{width:27px;height:27px;border-radius:7px;background:var(--surface2);border:none;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;}
+.modal-close:hover{background:var(--border2);color:var(--text);}
+.modal-body{padding:18px 22px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:7px;padding:13px 22px;border-top:1px solid var(--border);}
+.modal-section{margin-bottom:15px;}
+.modal-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);margin-bottom:7px;}
+.field-input,.field-textarea,.field-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 11px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:border-color .14s;}
+.field-input:focus,.field-textarea:focus,.field-select:focus{border-color:var(--accent);}
+.field-textarea{resize:vertical;min-height:70px;line-height:1.5;}
+.field-select option{background:var(--surface2);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* TAG PICKER IN MODAL */
+.tag-picker{display:flex;gap:5px;flex-wrap:wrap;}
+.tag-opt{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:700;letter-spacing:.35px;padding:4px 8px;border-radius:5px;text-transform:uppercase;cursor:pointer;border:2px solid transparent;opacity:.5;transition:all .12s;font-family:inherit;}
+.tag-opt:hover{opacity:.8;}
+.tag-opt.sel{opacity:1;border-color:rgba(255,255,255,.25);}
+.tag-opt.tag-complete  {background:var(--tag-complete-bg);  color:var(--tag-complete);}
+.tag-opt.tag-prio      {background:var(--tag-prio-bg);      color:var(--tag-prio);}
+.tag-opt.tag-due       {background:var(--tag-due-bg);       color:var(--tag-due);}
+.tag-opt.tag-inprog    {background:var(--tag-inprog-bg);    color:var(--tag-inprog);}
+.tag-opt.tag-qa        {background:var(--tag-qa-bg);        color:var(--tag-qa);}
+.tag-opt.tag-revisions {background:var(--tag-revisions-bg); color:var(--tag-revisions);}
+.tag-opt.tag-onhold    {background:var(--tag-onhold-bg);    color:var(--tag-onhold);}
+.tag-opt.tag-custom    {background:rgba(99,102,241,0.12);   color:#a5b4fc;}
+.add-tag-row{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.add-tag-input{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 9px;color:var(--text);font-family:inherit;font-size:11.5px;outline:none;width:130px;transition:border-color .14s;}
+.add-tag-input:focus{border-color:var(--accent);}
+.add-tag-btn{padding:5px 10px;border-radius:6px;background:var(--surface3);border:1px solid var(--border2);color:var(--muted2);font-family:inherit;font-size:11px;cursor:pointer;transition:all .12s;}
+.add-tag-btn:hover{color:var(--text);border-color:var(--accent);}
+
+/* SETUP MODAL */
+.setup-modal{max-width:520px;}
+.code-block{background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);padding:11px 13px;font-family:'Courier New',monospace;font-size:11px;color:#a5b4fc;line-height:1.7;margin:7px 0;overflow-x:auto;}
+.setup-step{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+.step-num{width:21px;height:21px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.step-desc{font-size:11.5px;color:var(--muted2);line-height:1.5;}
+
+/* TOAST */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:9000;display:flex;flex-direction:column;gap:6px;}
+.toast{padding:9px 14px;border-radius:var(--r);background:var(--surface2);border:1px solid var(--border2);font-size:12px;color:var(--text);box-shadow:var(--shadow);animation:toastIn .18s ease;display:flex;align-items:center;gap:7px;}
+@keyframes toastIn{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:translateX(0);}}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="collab-banner">
+  <span class="collab-pulse"></span>
+  <span><strong>Local mode</strong> — data saved to your browser only. Connect Supabase for live sync across all <strong>17+ team members</strong>.</span>
+  <span class="setup-link" onclick="openSetupModal()">How to enable collaboration →</span>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">U</div>
+    Unravel Board
+    <span class="logo-sub">/ Creative Ops</span>
+  </div>
+  <div class="header-center" id="projectTabs"></div>
+  <div class="header-right">
+    <div class="member-stack" id="memberStack"></div>
+    <button class="btn btn-primary" onclick="openNewCard()">＋ New Card</button>
+    <div class="avatar-chip" style="background:linear-gradient(135deg,#4f6ef7,#7c3aed)" title="Heinrich">HE</div>
+  </div>
+</header>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="toolbar">
+  <div class="toolbar-left">
+    <div class="board-title" id="boardTitle">Campaign Q2</div>
+    <div class="board-badge">Active</div>
+  </div>
+  <div class="toolbar-right">
+    <div class="search-box">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search cards… (⌘K)" oninput="render()" />
+    </div>
+    <div id="tagFilterRow" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;"></div>
+  </div>
+</div>
+
+<div class="board-wrap"><div class="board" id="board"></div></div>
+
+<!-- CARD MODAL -->
+<div class="modal-overlay" id="cardModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">New Card</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:3px;" id="modalMeta"></div>
+      </div>
+      <button class="modal-close" onclick="close$('cardModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">Title</div>
+        <input class="field-input" id="cTitle" placeholder="What needs to be done?" />
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">Description</div>
+        <textarea class="field-textarea" id="cDesc" placeholder="Details, links, references…"></textarea>
+      </div>
+      <div class="grid-2">
+        <div class="modal-section">
+          <div class="modal-label">Column</div>
+          <select class="field-select" id="cCol"></select>
+        </div>
+        <div class="modal-section">
+          <div class="modal-label">Assignee</div>
+          <select class="field-select" id="cAssignee">
+            <option value="">Unassigned</option>
+            <option value="HE">Heinrich</option>
+            <option value="AL">Alex</option>
+            <option value="MR">Maria</option>
+            <option value="JD">Juan</option>
+            <option value="KL">Kyla</option>
+            <option value="RB">Rico</option>
+            <option value="SN">Sofia</option>
+          </select>
+        </div>
+        <div class="modal-section">
+          <div class="modal-label">Due Date</div>
+          <input type="date" class="field-input" id="cDue" />
+        </div>
+        <div class="modal-section">
+          <div class="modal-label">Priority</div>
+          <select class="field-select" id="cPriority">
+            <option value="low">🟢 Low</option>
+            <option value="med">🟡 Medium</option>
+            <option value="high">🔴 High</option>
+          </select>
+        </div>
+      </div>
+      <!-- TAGS -->
+      <div class="modal-section">
+        <div class="modal-label">
+          Status Tags
+          <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:9.5px;margin-left:4px;">select multiple · or create custom</span>
+        </div>
+        <div class="tag-picker" id="tagPicker"></div>
+        <div class="add-tag-row">
+          <input class="add-tag-input" id="customTagInput" placeholder="＋ Custom tag name…" maxlength="20"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
+          <button class="add-tag-btn" onclick="addCustomTag()">Add Tag</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="close$('cardModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCard()">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUPABASE SETUP MODAL -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal setup-modal">
+    <div class="modal-header">
+      <div class="modal-title">🔌 Enable Live Collaboration</div>
+      <button class="modal-close" onclick="close$('setupModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12.5px;color:var(--muted2);margin-bottom:18px;line-height:1.6;">Connect Supabase so all <strong style="color:var(--text)">17+ team members</strong> see card moves, updates, and new cards in real time — no refresh needed. Free forever at your scale.</p>
+
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">Create a free Supabase project</div>
+          <div class="step-desc">Go to <strong style="color:var(--accent)">supabase.com</strong> → New Project. The free tier supports up to 50,000 monthly active users.</div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">Run the schema SQL</div>
+          <div class="step-desc">In Supabase → SQL Editor, paste the contents of <code style="color:var(--accent)">supabase-schema.sql</code> (in your download) and hit Run.</div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">Add your keys to <code style="color:var(--accent)">index.html</code></div>
+          <div class="code-block">// Near top of &lt;script&gt; in index.html:<br>const SUPABASE_URL = 'https://xxxx.supabase.co';<br>const SUPABASE_KEY = 'eyJhbGci...';</div>
+          <div class="step-desc">Find these at: Supabase Dashboard → Settings → API</div>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">Invite your 17+ teammates</div>
+          <div class="step-desc">Share the Vercel URL. Add teammates under Supabase → Authentication → Users. Supports magic link (email) or Google OAuth — no passwords required.</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.18);border-radius:var(--r);padding:12px 14px;margin-top:4px;">
+        <div style="font-size:11.5px;color:var(--success);font-weight:600;margin-bottom:5px;">💰 Cost estimate for 17–25 users</div>
+        <div style="font-size:11.5px;color:var(--muted2);line-height:1.6;">Database usage: <strong style="color:var(--text)">~7 MB/year</strong> (Supabase free = 500 MB). Bandwidth: well under 5 GB/month free limit. <strong style="color:var(--text)">Running cost: ₱0/month</strong>. Only upgrade to Pro (~$25/mo) if you add file attachment storage or need daily backups.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="close$('setupModal')">Close</button>
+      <button class="btn btn-primary" onclick="window.open('https://supabase.com','_blank')">Open Supabase ↗</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ─── CONSTANTS ───
+const SUPABASE_URL = ''; // Fill when ready
+const SUPABASE_KEY = ''; // Fill when ready
+
+const SYSTEM_TAGS = [
+  {key:'complete',  label:'Complete',      cls:'tag-complete'},
+  {key:'prio',      label:'Priority',      cls:'tag-prio'},
+  {key:'due',       label:'Due Soon',      cls:'tag-due'},
+  {key:'inprog',    label:'In Progress',   cls:'tag-inprog'},
+  {key:'qa',        label:'For QA',        cls:'tag-qa'},
+  {key:'revisions', label:'For Revisions', cls:'tag-revisions'},
+  {key:'onhold',    label:'On Hold',       cls:'tag-onhold'},
+];
+
+const MEMBER_BG = {
+  HE:'linear-gradient(135deg,#4f6ef7,#7c3aed)',
+  AL:'linear-gradient(135deg,#10b981,#059669)',
+  MR:'linear-gradient(135deg,#f59e0b,#d97706)',
+  JD:'linear-gradient(135deg,#ef4444,#dc2626)',
+  KL:'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+  RB:'linear-gradient(135deg,#06b6d4,#0891b2)',
+  SN:'linear-gradient(135deg,#f97316,#ea580c)',
+};
+const MEMBERS = ['HE','AL','MR','JD','KL','RB','SN'];
+
+// ─── STATE ───
+let boards = {}, currentBoard = 'Campaign Q2', editingId = null;
+let activeFilters = new Set(), dragId = null, selTags = new Set();
+
+// ─── SEED ───
+function mkCols(){return[{id:'todo',title:'To Do',color:'#4f6ef7'},{id:'inprog',title:'In Progress',color:'#f59e0b'},{id:'review',title:'In Review',color:'#8b5cf6'},{id:'done',title:'Done',color:'#10b981'}];}
+
+function seed(){
+  boards = {
+    'Campaign Q2':{columns:mkCols(),customTags:[],cards:[
+      {id:uid(),colId:'todo',   title:'Meta Ads creative batch — April',     desc:'6 static banners + 2 video hooks for Time2Bet Q2.',             tags:['prio','inprog'],    assignee:'AL',due:'2025-04-10',priority:'high'},
+      {id:uid(),colId:'todo',   title:'TikTok copy — sports betting push',   desc:'5 short-form captions with CTAs, targeting 18–35 demo.',        tags:['prio'],             assignee:'MR',due:'2025-04-12',priority:'med'},
+      {id:uid(),colId:'todo',   title:'ISP report — bilingual EN/ZH-TW',    desc:'Weekly dashboard layout for Taiwanese partner.',                tags:['onhold'],           assignee:'HE',due:'',          priority:'low'},
+      {id:uid(),colId:'inprog', title:'PropellerAds banner set v3',          desc:'Resize from 728×90: 300×250, 320×50, 160×600.',                tags:['inprog','prio'],    assignee:'KL',due:'2025-04-08',priority:'high'},
+      {id:uid(),colId:'inprog', title:'Perya Nights — symbol art direction', desc:'Filipino-themed cluster-pays. Parol, jeepney, bibingka…',       tags:['inprog'],           assignee:'AL',due:'2025-04-15',priority:'med'},
+      {id:uid(),colId:'review', title:'COW88 pitch deck — final polish',     desc:'GTA6-inspired aesthetic. Waiting on slide 8 color sign-off.',   tags:['qa','revisions'],   assignee:'HE',due:'2025-04-05',priority:'high'},
+      {id:uid(),colId:'review', title:'Time2Bet homepage hero copy',         desc:'Two headline variants + subtitle. A/B test on Apr 7.',          tags:['qa'],               assignee:'MR',due:'2025-04-06',priority:'med'},
+      {id:uid(),colId:'done',   title:'Nozomi Café franchise deck',          desc:'Approved by stakeholders and archived.',                        tags:['complete'],         assignee:'JD',due:'',          priority:'low'},
+      {id:uid(),colId:'done',   title:'PAGCOR license edit for Meta auth',   desc:'Submitted to Meta gambling advertiser authorization.',          tags:['complete'],         assignee:'HE',due:'',          priority:'high'},
+    ]},
+    'Asset Production':{columns:mkCols(),customTags:[],cards:[
+      {id:uid(),colId:'todo',   title:'Social media template kit',    desc:'Canva-compatible templates for weekly posts.',           tags:['inprog'],   assignee:'AL',due:'',          priority:'med'},
+      {id:uid(),colId:'inprog', title:'Video intro/outro bumpers',    desc:'10-sec branded sting for YouTube and TikTok.',           tags:['prio'],     assignee:'KL',due:'2025-04-09',priority:'high'},
+      {id:uid(),colId:'review', title:'Unravel brand guide v2',       desc:'Updated palette + typography for all clients.',          tags:['revisions'],assignee:'HE',due:'2025-04-07',priority:'med'},
+      {id:uid(),colId:'done',   title:'COW88 logo variations',        desc:'Final SVG kit delivered.',                               tags:['complete'], assignee:'AL',due:'',          priority:'low'},
+    ]},
+    'General Tasks':{columns:mkCols(),customTags:[],cards:[
+      {id:uid(),colId:'todo',   title:'Deploy Unravel Board on Vercel', desc:'Wire Supabase, confirm env vars, invite whole team.',   tags:['prio','inprog'],assignee:'HE',due:'2025-04-07',priority:'high'},
+      {id:uid(),colId:'todo',   title:'Team onboarding Loom recording', desc:'5-min walkthrough for new creatives.',                  tags:['onhold'],       assignee:'MR',due:'',          priority:'low'},
+      {id:uid(),colId:'inprog', title:'Wyoming LLC EIN follow-up',      desc:'ZenBusiness D-U-N-S application pending.',              tags:['due','inprog'],  assignee:'HE',due:'2025-04-08',priority:'high'},
+    ]},
+  };
+  save();
+}
+
+// ─── PERSIST ───
+function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36);}
+function save(){try{localStorage.setItem('unravel-v3',JSON.stringify(boards));}catch(e){}}
+function load(){try{const d=localStorage.getItem('unravel-v3');if(d)boards=JSON.parse(d);else seed();}catch(e){seed();}}
+
+// ─── RENDER ───
+function render(){
+  renderTabs();
+  renderBoard();
+  renderStats();
+  renderMembers();
+  renderTagFilters();
+}
+
+function renderTabs(){
+  const c=document.getElementById('projectTabs');
+  c.innerHTML=Object.keys(boards).map(n=>`<button class="project-tab${n===currentBoard?' active':''}" onclick="switchProject('${n}')">${n}</button>`).join('')+`<button class="project-tab" onclick="addProject()" style="padding:5px 9px;">＋</button>`;
+}
+
+function renderBoard(){
+  const bd=boards[currentBoard], search=document.getElementById('searchInput').value.toLowerCase();
+  const el=document.getElementById('board');
+  el.innerHTML='';
+  bd.columns.forEach(col=>{
+    let cards=bd.cards.filter(c=>c.colId===col.id);
+    if(search) cards=cards.filter(c=>c.title.toLowerCase().includes(search)||(c.desc||'').toLowerCase().includes(search));
+    if(activeFilters.size) cards=cards.filter(c=>(c.tags||[]).some(t=>activeFilters.has(t)));
+    const colEl=document.createElement('div');
+    colEl.className='col'; colEl.dataset.colId=col.id;
+    colEl.addEventListener('dragover',e=>{e.preventDefault();colEl.classList.add('drag-over');});
+    colEl.addEventListener('dragleave',()=>colEl.classList.remove('drag-over'));
+    colEl.addEventListener('drop',e=>{e.preventDefault();colEl.classList.remove('drag-over');dropCard(col.id);});
+    colEl.innerHTML=`<div class="col-header"><div class="col-title-wrap"><div class="col-dot" style="background:${col.color};box-shadow:0 0 5px ${col.color}55;"></div><div class="col-title">${col.title}</div><div class="col-count">${cards.length}</div></div><div class="col-actions"><button class="col-btn" onclick="openNewCard('${col.id}')">＋</button><button class="col-btn" onclick="colMenu('${col.id}')">⋯</button></div></div><div class="col-body" id="cb-${col.id}"></div>`;
+    const body=colEl.querySelector('#cb-'+col.id);
+    cards.forEach(c=>body.appendChild(buildCard(c,col)));
+    const ab=document.createElement('button');
+    ab.className='add-card-btn';ab.textContent='＋ Add card';ab.onclick=()=>openNewCard(col.id);
+    body.appendChild(ab);
+    el.appendChild(colEl);
+  });
+  const ac=document.createElement('div');
+  ac.className='add-col';ac.textContent='＋ Add Column';ac.onclick=addColumn;
+  el.appendChild(ac);
+}
+
+function buildCard(card,col){
+  const el=document.createElement('div');
+  el.className='card';el.draggable=true;el.dataset.id=card.id;
+  el.style.cssText+=`border-left:3px solid ${col.color};`;
+  const bd=boards[currentBoard];
+  const tagHtml=(card.tags||[]).map(tk=>{
+    const s=SYSTEM_TAGS.find(x=>x.key===tk);
+    if(s) return`<span class="tag ${s.cls}"><span class="tag-dot"></span>${s.label}</span>`;
+    const ct=(bd.customTags||[]).find(t=>t.key===tk);
+    return ct?`<span class="tag tag-custom">${ct.label}</span>`:'';
+  }).filter(Boolean).join('');
+  let dueHtml='';
+  if(card.due){const d=new Date(card.due),now=new Date(),diff=(d-now)/86400000;const cls=diff<0?'due-overdue':diff<2?'due-soon':'';dueHtml=`<span class="card-pill ${cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${card.due}</span>`;}
+  const as=card.assignee?`<div class="card-assignee" style="background:${MEMBER_BG[card.assignee]||'#4f6ef7'}">${card.assignee}</div>`:'';
+  const pd={high:'var(--danger)',med:'var(--warn)',low:'var(--success)'}[card.priority||'low'];
+  el.innerHTML=`${tagHtml?`<div class="card-tags">${tagHtml}</div>`:''}<div class="card-title">${card.title}</div>${card.desc?`<div class="card-desc">${card.desc}</div>`:''}<div class="card-footer"><div class="card-meta"><span style="width:5px;height:5px;border-radius:50%;background:${pd};flex-shrink:0;display:inline-block;"></span>${dueHtml}</div>${as}</div>`;
+  el.addEventListener('click',()=>openEditCard(card.id));
+  el.addEventListener('dragstart',()=>{dragId=card.id;setTimeout(()=>el.classList.add('dragging'),0);});
+  el.addEventListener('dragend',()=>{el.classList.remove('dragging');dragId=null;});
+  return el;
+}
+
+function renderStats(){
+  const bd=boards[currentBoard],total=bd.cards.length,done=bd.cards.filter(c=>c.colId==='done').length,inp=bd.cards.filter(c=>c.colId==='inprog').length,hi=bd.cards.filter(c=>c.priority==='high'&&c.colId!=='done').length,pct=total?Math.round(done/total*100):0;
+  const segs=Array.from({length:10},(_,i)=>`<span class="stat-seg${i<Math.round(pct/10)?' on':''}"></span>`).join('');
+  document.getElementById('statsBar').innerHTML=`<div class="stat"><span class="stat-dot" style="background:var(--accent)"></span>Total <span class="stat-val" style="margin-left:4px">${total}</span></div><div class="stat"><span class="stat-dot" style="background:var(--warn)"></span>In Progress <span class="stat-val" style="margin-left:4px">${inp}</span></div><div class="stat"><span class="stat-dot" style="background:var(--success)"></span>Done <span class="stat-val" style="margin-left:4px">${done}</span></div><div class="stat"><span class="stat-dot" style="background:var(--danger)"></span>High Priority <span class="stat-val" style="margin-left:4px">${hi}</span></div><div class="stat" style="margin-left:auto;gap:8px;">${segs}<span class="stat-val">${pct}%</span></div>`;
+}
+
+function renderMembers(){
+  const vis=MEMBERS.slice(0,5),extra=MEMBERS.length-5;
+  document.getElementById('memberStack').innerHTML=vis.map(m=>`<div class="avatar-chip" style="background:${MEMBER_BG[m]}" title="${m}">${m}</div>`).join('')+(extra>0?`<div class="member-count">+${extra}</div>`:'');
+}
+
+function renderTagFilters(){
+  const allTags=getAllTags();
+  document.getElementById('tagFilterRow').innerHTML=allTags.map(t=>{
+    const active=activeFilters.has(t.key);
+    return`<button onclick="toggleFilter('${t.key}')" class="tag-opt ${t.cls}${active?' sel':''}" style="font-size:9.5px;padding:3px 8px;">${t.label}</button>`;
+  }).join('');
+}
+
+function getAllTags(){
+  const bd=boards[currentBoard];
+  return[...SYSTEM_TAGS,...(bd.customTags||[]).map(ct=>({key:ct.key,label:ct.label,cls:'tag-custom'}))];
+}
+
+// ─── DRAG ───
+function dropCard(targetColId){
+  if(!dragId)return;
+  const bd=boards[currentBoard],card=bd.cards.find(c=>c.id===dragId);
+  if(!card||card.colId===targetColId)return;
+  const colName=bd.columns.find(c=>c.id===targetColId)?.title;
+  card.colId=targetColId;save();render();
+  toast(`Moved to "${colName}"`, '↔');
+}
+
+// ─── MODALS ───
+function close$(id){document.getElementById(id).classList.remove('open');}
+function openSetupModal(){document.getElementById('setupModal').classList.add('open');}
+
+function openNewCard(colId){
+  editingId=null;selTags=new Set();
+  ['cTitle','cDesc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cDue').value='';
+  document.getElementById('cAssignee').value='HE';
+  document.getElementById('cPriority').value='low';
+  document.getElementById('modalTitle').textContent='New Card';
+  document.getElementById('modalMeta').textContent='';
+  buildColSelect(colId||boards[currentBoard].columns[0]?.id);
+  buildTagPicker();
+  document.getElementById('cardModal').classList.add('open');
+  setTimeout(()=>document.getElementById('cTitle').focus(),120);
+}
+
+function openEditCard(cardId){
+  const bd=boards[currentBoard],card=bd.cards.find(c=>c.id===cardId);
+  if(!card)return;
+  editingId=cardId;selTags=new Set(card.tags||[]);
+  document.getElementById('cTitle').value=card.title;
+  document.getElementById('cDesc').value=card.desc||'';
+  document.getElementById('cDue').value=card.due||'';
+  document.getElementById('cAssignee').value=card.assignee||'';
+  document.getElementById('cPriority').value=card.priority||'low';
+  document.getElementById('modalTitle').textContent='Edit Card';
+  document.getElementById('modalMeta').textContent=`Card · ${card.id.slice(0,8)}`;
+  buildColSelect(card.colId);buildTagPicker();
+  document.getElementById('cardModal').classList.add('open');
+}
+
+function buildColSelect(selId){
+  document.getElementById('cCol').innerHTML=boards[currentBoard].columns.map(c=>`<option value="${c.id}"${c.id===selId?' selected':''}>${c.title}</option>`).join('');
+}
+
+function buildTagPicker(){
+  const all=getAllTags();
+  document.getElementById('tagPicker').innerHTML=all.map(t=>`<button class="tag-opt ${t.cls}${selTags.has(t.key)?' sel':''}" data-key="${t.key}" onclick="toggleTagSel('${t.key}',this)">${t.label}</button>`).join('');
+}
+
+function toggleTagSel(key,el){
+  if(selTags.has(key)){selTags.delete(key);el.classList.remove('sel');}
+  else{selTags.add(key);el.classList.add('sel');}
+}
+
+function addCustomTag(){
+  const input=document.getElementById('customTagInput'),label=input.value.trim();
+  if(!label)return;
+  const key='c-'+label.toLowerCase().replace(/\s+/g,'-');
+  const bd=boards[currentBoard];
+  if(!bd.customTags)bd.customTags=[];
+  if(!bd.customTags.find(t=>t.key===key)){bd.customTags.push({key,label});save();}
+  selTags.add(key);input.value='';buildTagPicker();
+  toast(`Tag "${label}" created`, '🏷');
+}
+
+function saveCard(){
+  const title=document.getElementById('cTitle').value.trim();
+  if(!title){document.getElementById('cTitle').style.borderColor='var(--danger)';document.getElementById('cTitle').focus();return;}
+  document.getElementById('cTitle').style.borderColor='';
+  const bd=boards[currentBoard];
+  const data={title,desc:document.getElementById('cDesc').value.trim(),colId:document.getElementById('cCol').value,assignee:document.getElementById('cAssignee').value,due:document.getElementById('cDue').value,priority:document.getElementById('cPriority').value,tags:[...selTags]};
+  if(editingId){Object.assign(bd.cards.find(c=>c.id===editingId),data);toast('Card updated','✓');}
+  else{bd.cards.push({id:uid(),...data});toast('Card created','✓');}
+  save();render();close$('cardModal');
+}
+
+// ─── FILTERS ───
+function toggleFilter(key){
+  if(activeFilters.has(key))activeFilters.delete(key);else activeFilters.add(key);
+  render();
+}
+
+// ─── PROJECTS ───
+function switchProject(name){currentBoard=name;activeFilters.clear();document.getElementById('searchInput').value='';document.getElementById('boardTitle').textContent=name;render();}
+
+function addProject(){
+  const n=prompt('Project name:')?.trim();
+  if(!n)return;
+  if(boards[n]){toast('Already exists','!');return;}
+  boards[n]={columns:mkCols(),cards:[],customTags:[]};
+  save();switchProject(n);toast(`Project "${n}" created`,'✓');
+}
+
+// ─── COLUMNS ───
+function addColumn(){
+  const t=prompt('Column name:')?.trim();if(!t)return;
+  const id=t.toLowerCase().replace(/\s+/g,'-')+'-'+uid().slice(0,4);
+  const pal=['#4f6ef7','#f59e0b','#8b5cf6','#10b981','#ef4444','#06b6d4','#f97316'];
+  boards[currentBoard].columns.push({id,title:t,color:pal[Math.floor(Math.random()*pal.length)]});
+  save();render();toast(`Column "${t}" added`,'✓');
+}
+
+function colMenu(colId){
+  const bd=boards[currentBoard],col=bd.columns.find(c=>c.id===colId);if(!col)return;
+  const a=prompt(`Column: "${col.title}"\nType: rename · delete`);if(!a)return;
+  if(a.trim()==='rename'){const n=prompt('New name:',col.title);if(n?.trim()){col.title=n.trim();save();render();}}
+  else if(a.trim()==='delete'){if(confirm(`Delete "${col.title}" and all cards?`)){bd.cards=bd.cards.filter(c=>c.colId!==colId);bd.columns=bd.columns.filter(c=>c.id!==colId);save();render();toast('Column deleted');}}
+}
+
+// ─── TOAST ───
+function toast(msg,icon='ℹ'){
+  const t=document.createElement('div');t.className='toast';
+  t.innerHTML=`<span style="font-size:13px;">${icon}</span>${msg}`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ─── KEYBOARD ───
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){close$('cardModal');close$('setupModal');}
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();document.getElementById('searchInput').focus();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();openNewCard();}
+});
+
+// ─── INIT ───
+load();render();
+</script>
+</body>
+</html>
