@@ -221,6 +221,57 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .auth-msg.err{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2);display:block;}
 .auth-footer{text-align:center;font-size:11.5px;color:var(--muted);margin-top:20px;}
 #appScreen{display:none;}
+
+/* CARD THUMBNAIL */
+.card-thumb{width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:9px;display:block;}
+
+/* DETAIL MODAL — wide Trello-style */
+.detail-modal{max-width:720px;width:100%;}
+.detail-two-col{display:grid;grid-template-columns:1fr 220px;gap:20px;align-items:start;}
+.detail-main{}
+.detail-side{}
+.detail-section{margin-bottom:20px;}
+.detail-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.detail-section-title svg{width:12px;height:12px;flex-shrink:0;}
+
+/* COMMENTS */
+.comment-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.comment-item{display:flex;gap:10px;align-items:flex-start;}
+.comment-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;margin-top:1px;}
+.comment-body{flex:1;}
+.comment-meta{font-size:10.5px;color:var(--muted2);margin-bottom:3px;}
+.comment-meta strong{color:var(--text);font-weight:600;}
+.comment-text{font-size:12.5px;line-height:1.5;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;}
+.comment-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;margin-left:6px;padding:2px 4px;border-radius:4px;transition:all .12s;}
+.comment-del:hover{color:var(--danger);background:rgba(239,68,68,0.1);}
+.comment-input-row{display:flex;gap:8px;align-items:flex-end;}
+.comment-textarea{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:inherit;font-size:12.5px;resize:none;outline:none;min-height:60px;line-height:1.5;transition:border-color .14s;}
+.comment-textarea:focus{border-color:var(--accent);}
+.comment-send{padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .14s;white-space:nowrap;}
+.comment-send:hover{background:#6278f9;}
+.comment-send:disabled{opacity:.4;cursor:not-allowed;}
+
+/* IMAGE UPLOAD */
+.img-upload-area{border:2px dashed var(--border2);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .15s;position:relative;}
+.img-upload-area:hover,.img-upload-area.drag-on{border-color:var(--accent);background:rgba(79,110,247,0.04);}
+.img-upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.img-upload-icon{font-size:22px;margin-bottom:6px;}
+.img-upload-text{font-size:12px;color:var(--muted2);}
+.img-preview-wrap{position:relative;margin-top:10px;}
+.img-preview{width:100%;border-radius:var(--r);display:block;max-height:200px;object-fit:cover;}
+.img-remove{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .12s;}
+.img-remove:hover{background:var(--danger);}
+
+/* SIDE ACTIONS */
+.side-action-btn{width:100%;padding:8px 12px;border-radius:var(--r);background:var(--surface2);border:1px solid var(--border);color:var(--muted2);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:all .14s;display:flex;align-items:center;gap:8px;margin-bottom:6px;text-align:left;}
+.side-action-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface3);}
+.side-action-btn svg{width:13px;height:13px;flex-shrink:0;}
+.side-action-btn.danger:hover{border-color:rgba(239,68,68,.3);color:var(--danger);background:rgba(239,68,68,.07);}
+
+/* TAG DELETE */
+.tag-del{width:14px;height:14px;border-radius:3px;background:rgba(0,0,0,0.2);border:none;color:currentColor;cursor:pointer;font-size:9px;display:inline-flex;align-items:center;justify-content:center;margin-left:3px;opacity:0;transition:opacity .12s;vertical-align:middle;}
+.tag:hover .tag-del{opacity:1;}
+
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
@@ -340,63 +391,119 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   </div>
 </div>
 
-<!-- CARD MODAL -->
+<!-- CARD DETAIL MODAL -->
 <div class="modal-overlay" id="cardModal">
-  <div class="modal">
+  <div class="modal detail-modal">
     <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modalTitle">New Card</div>
-        <div style="font-size:10.5px;color:var(--muted);margin-top:3px;" id="modalMeta"></div>
+      <div style="flex:1">
+        <input class="field-input" id="cTitle" placeholder="Card title…" style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;border:none;background:transparent;padding:0;letter-spacing:-.3px;" />
+        <div style="font-size:10.5px;color:var(--muted);margin-top:4px;" id="modalMeta"></div>
       </div>
       <button class="modal-close" onclick="closeModal('cardModal')">✕</button>
     </div>
+
+    <!-- THUMBNAIL -->
+    <div id="thumbWrap" style="display:none;position:relative;">
+      <img id="thumbImg" class="card-thumb" style="width:100%;height:160px;object-fit:cover;border-radius:0;" src="" alt="cover" />
+      <button class="img-remove" id="thumbRemoveBtn" onclick="removeCover()" style="top:10px;right:10px;width:28px;height:28px;">✕</button>
+    </div>
+
     <div class="modal-body">
-      <div class="modal-section">
-        <div class="modal-label">Title</div>
-        <input class="field-input" id="cTitle" placeholder="What needs to be done?" />
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">Description</div>
-        <textarea class="field-textarea" id="cDesc" placeholder="Details, links, references…"></textarea>
-      </div>
-      <div class="grid-2">
-        <div class="modal-section">
-          <div class="modal-label">Column</div>
-          <select class="field-select" id="cCol"></select>
+      <div class="detail-two-col">
+        <!-- MAIN -->
+        <div class="detail-main">
+          <div class="detail-section">
+            <div class="detail-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Description
+            </div>
+            <textarea class="field-textarea" id="cDesc" placeholder="Add a description…" style="min-height:80px;"></textarea>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Comments
+            </div>
+            <div class="comment-list" id="commentList"></div>
+            <div class="comment-input-row">
+              <div class="comment-avatar" id="commentAvatar">HE</div>
+              <textarea class="comment-textarea" id="commentInput" placeholder="Write a comment…" rows="2"
+                onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter'){event.preventDefault();postComment();}"></textarea>
+              <button class="comment-send" onclick="postComment()">Send</button>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:5px;">⌘+Enter to send</div>
+          </div>
         </div>
-        <div class="modal-section">
-          <div class="modal-label">Assignee</div>
-          <select class="field-select" id="cAssignee">
-            <option value="">Unassigned</option>
-            <option value="HE">Heinrich</option>
-          </select>
-        </div>
-        <div class="modal-section">
-          <div class="modal-label">Due Date</div>
-          <input type="date" class="field-input" id="cDue" />
-        </div>
-        <div class="modal-section">
-          <div class="modal-label">Priority</div>
-          <select class="field-select" id="cPriority">
-            <option value="low">🟢 Low</option>
-            <option value="med">🟡 Medium</option>
-            <option value="high">🔴 High</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">
-          Status Tags
-          <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:9.5px;margin-left:4px;">select multiple · or create custom</span>
-        </div>
-        <div class="tag-picker" id="tagPicker"></div>
-        <div class="add-tag-row">
-          <input class="add-tag-input" id="customTagInput" placeholder="＋ Custom tag…" maxlength="20"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" />
-          <button class="add-tag-btn" onclick="addCustomTag()">Add Tag</button>
+
+        <!-- SIDEBAR -->
+        <div class="detail-side">
+          <div class="detail-section">
+            <div class="detail-section-title">Column</div>
+            <select class="field-select" id="cCol" style="font-size:12px;padding:7px 10px;"></select>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title">Assignee</div>
+            <select class="field-select" id="cAssignee" style="font-size:12px;padding:7px 10px;">
+              <option value="">Unassigned</option>
+              <option value="HE">Heinrich</option>
+            </select>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title">Due Date</div>
+            <input type="date" class="field-input" id="cDue" style="font-size:12px;padding:7px 10px;" />
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title">Priority</div>
+            <select class="field-select" id="cPriority" style="font-size:12px;padding:7px 10px;">
+              <option value="low">🟢 Low</option>
+              <option value="med">🟡 Medium</option>
+              <option value="high">🔴 High</option>
+            </select>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              Tags
+            </div>
+            <div class="tag-picker" id="tagPicker" style="margin-bottom:8px;"></div>
+            <div class="add-tag-row" style="margin-top:4px;">
+              <input class="add-tag-input" id="customTagInput" placeholder="＋ Custom tag…" maxlength="20"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomTag();}" style="width:100%;" />
+              <button class="add-tag-btn" onclick="addCustomTag()">Add</button>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Cover Image
+            </div>
+            <div class="img-upload-area" id="imgUploadArea"
+              ondragover="event.preventDefault();this.classList.add('drag-on')"
+              ondragleave="this.classList.remove('drag-on')"
+              ondrop="handleImgDrop(event)">
+              <input type="file" accept="image/*" onchange="handleImgFile(this)" />
+              <div class="img-upload-icon">🖼</div>
+              <div class="img-upload-text">Click or drag an image<br><span style="font-size:10.5px;color:var(--muted);">Shows as thumbnail on card</span></div>
+            </div>
+            <div class="img-preview-wrap" id="imgPreviewWrap" style="display:none;">
+              <img class="img-preview" id="imgPreview" src="" alt="preview" />
+              <button class="img-remove" onclick="clearImgPreview()">✕</button>
+            </div>
+          </div>
+
+          <div style="margin-top:8px;">
+            <button class="side-action-btn danger" onclick="deleteCard()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Delete Card
+            </button>
+          </div>
         </div>
       </div>
     </div>
+
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('cardModal')">Cancel</button>
       <button class="btn btn-primary" id="saveCardBtn" onclick="saveCard()">Save Card</button>
@@ -457,6 +564,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 // ═══════════════════════════════════════════════
 const SUPABASE_URL = 'https://kojpkostlugwgvzmgddp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_CN32lHpAMVdt5zAr3TyssA_lRLPPrCv';
+// ═══════════════════════════════════════════════
+// Run this SQL in Supabase to add new columns:
+// ALTER TABLE cards ADD COLUMN IF NOT EXISTS cover_url TEXT;
+// ALTER TABLE cards ADD COLUMN IF NOT EXISTS comment_count INT DEFAULT 0;
 // ═══════════════════════════════════════════════
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -834,6 +945,7 @@ function buildCard(card, col) {
   el.draggable = true;
   el.dataset.id = card.id;
   el.style.borderLeft = `3px solid ${col.color}`;
+  el.style.paddingLeft = '13px';
 
   const ctags = getCustomTags();
   const tagHtml = (card.labels||[]).map(tk => {
@@ -852,8 +964,15 @@ function buildCard(card, col) {
 
   const as = card.assignee ? `<div class="card-assignee" style="background:${MEMBER_BG[card.assignee]||'#4f6ef7'}">${card.assignee}</div>` : '';
   const pd = {high:'var(--danger)',med:'var(--warn)',low:'var(--success)'}[card.priority||'low'];
+  const hasComments = (card.comment_count||0) > 0;
+
+  // thumbnail sits OUTSIDE the left border padding
+  const thumbHtml = card.cover_url
+    ? `<img class="card-thumb" src="${card.cover_url}" alt="cover" style="margin-left:-13px;width:calc(100% + 13px);border-radius:6px 6px 0 0;margin-top:-10px;margin-bottom:10px;" />`
+    : '';
 
   el.innerHTML = `
+    ${thumbHtml}
     ${tagHtml ? `<div class="card-tags">${tagHtml}</div>` : ''}
     <div class="card-title">${card.title}</div>
     ${card.description ? `<div class="card-desc">${card.description}</div>` : ''}
@@ -861,6 +980,7 @@ function buildCard(card, col) {
       <div class="card-meta">
         <span style="width:5px;height:5px;border-radius:50%;background:${pd};flex-shrink:0;display:inline-block;"></span>
         ${dueHtml}
+        ${hasComments ? `<span class="card-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${card.comment_count}</span>` : ''}
       </div>
       ${as}
     </div>
@@ -945,37 +1065,66 @@ async function dropCard(targetColId) {
 // ── MODAL ──
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
+let pendingCoverUrl = null;   // base64 or URL of new cover to save
+let pendingCoverFile = null;  // File object
+
 function openNewCard(colId) {
   editingCardId = null;
   selTags = new Set();
+  pendingCoverUrl = null; pendingCoverFile = null;
   document.getElementById('cTitle').value = '';
   document.getElementById('cDesc').value = '';
   document.getElementById('cDue').value = '';
   document.getElementById('cAssignee').value = 'HE';
   document.getElementById('cPriority').value = 'low';
-  document.getElementById('modalTitle').textContent = 'New Card';
   document.getElementById('modalMeta').textContent = '';
+  document.getElementById('thumbWrap').style.display = 'none';
+  document.getElementById('imgPreviewWrap').style.display = 'none';
+  document.getElementById('imgUploadArea').style.display = 'block';
+  document.getElementById('commentList').innerHTML = '';
   buildColSelect(colId || columns.find(c=>c.project_id===currentProjectId)?.id);
   buildTagPicker();
+  // update comment avatar
+  const initials = currentUser?.user_metadata?.full_name?.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'HE';
+  document.getElementById('commentAvatar').textContent = initials;
   document.getElementById('cardModal').classList.add('open');
   setTimeout(() => document.getElementById('cTitle').focus(), 120);
 }
 
-function openEditCard(cardId) {
+async function openEditCard(cardId) {
   const card = cards.find(c => c.id === cardId);
   if (!card) return;
   editingCardId = cardId;
   selTags = new Set(card.labels || []);
+  pendingCoverUrl = null; pendingCoverFile = null;
   document.getElementById('cTitle').value = card.title;
   document.getElementById('cDesc').value = card.description || '';
   document.getElementById('cDue').value = card.due_date || '';
   document.getElementById('cAssignee').value = card.assignee || '';
   document.getElementById('cPriority').value = card.priority || 'low';
-  document.getElementById('modalTitle').textContent = 'Edit Card';
-  document.getElementById('modalMeta').textContent = `${card.id.slice(0,8)}`;
+  document.getElementById('modalMeta').textContent = `ID: ${card.id.slice(0,8)}`;
   buildColSelect(card.column_id);
   buildTagPicker();
+
+  // Cover image
+  if (card.cover_url) {
+    document.getElementById('thumbWrap').style.display = 'block';
+    document.getElementById('thumbImg').src = card.cover_url;
+    document.getElementById('imgUploadArea').style.display = 'none';
+    document.getElementById('imgPreviewWrap').style.display = 'none';
+  } else {
+    document.getElementById('thumbWrap').style.display = 'none';
+    document.getElementById('imgUploadArea').style.display = 'block';
+    document.getElementById('imgPreviewWrap').style.display = 'none';
+  }
+
+  // Comment avatar
+  const initials = currentUser?.user_metadata?.full_name?.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || 'HE';
+  document.getElementById('commentAvatar').textContent = initials;
+  document.getElementById('commentInput').value = '';
+
   document.getElementById('cardModal').classList.add('open');
+  await loadComments(cardId);
 }
 
 function buildColSelect(selId) {
@@ -988,9 +1137,13 @@ function buildColSelect(selId) {
 
 function buildTagPicker() {
   const all = getAllTags();
-  document.getElementById('tagPicker').innerHTML = all.map(t =>
-    `<button class="tag-opt ${t.cls}${selTags.has(t.key)?' sel':''}" data-key="${t.key}" onclick="toggleTagSel('${t.key}',this)">${t.label}</button>`
-  ).join('');
+  const ctKeys = new Set(getCustomTags().map(t=>t.key));
+  document.getElementById('tagPicker').innerHTML = all.map(t => {
+    const delBtn = ctKeys.has(t.key)
+      ? `<span class="tag-del" title="Delete tag" onclick="event.stopPropagation();deleteTag('${t.key}')">✕</span>`
+      : '';
+    return `<button class="tag-opt ${t.cls}${selTags.has(t.key)?' sel':''}" data-key="${t.key}" onclick="toggleTagSel('${t.key}',this)">${t.label}${delBtn}</button>`;
+  }).join('');
 }
 
 function toggleTagSel(key, el) {
@@ -1018,15 +1171,19 @@ function addCustomTag() {
 async function saveCard() {
   const title = document.getElementById('cTitle').value.trim();
   if (!title) {
-    document.getElementById('cTitle').style.borderColor = 'var(--danger)';
+    document.getElementById('cTitle').style.outline = '2px solid var(--danger)';
     document.getElementById('cTitle').focus();
     return;
   }
-  document.getElementById('cTitle').style.borderColor = '';
+  document.getElementById('cTitle').style.outline = '';
 
   const saveBtn = document.getElementById('saveCardBtn');
-  saveBtn.disabled = true;
-  saveBtn.textContent = 'Saving…';
+  saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+
+  // Handle image upload — store as base64 in cover_url (simple, no Storage needed)
+  let cover_url = editingCardId ? (cards.find(c=>c.id===editingCardId)?.cover_url || null) : null;
+  if (pendingCoverUrl) cover_url = pendingCoverUrl;
+  if (pendingCoverUrl === '') cover_url = null; // explicitly removed
 
   const data = {
     title,
@@ -1038,38 +1195,188 @@ async function saveCard() {
     priority:    document.getElementById('cPriority').value,
     labels:      [...selTags],
     is_archived: false,
+    cover_url,
   };
 
   if (isConnected) {
     if (editingCardId) {
       const {error} = await sb.from('cards').update(data).eq('id', editingCardId);
       if (error) { toast('Save failed: ' + error.message, '✕'); saveBtn.disabled=false; saveBtn.textContent='Save Card'; return; }
+      // Update local state immediately
+      const local = cards.find(c=>c.id===editingCardId);
+      if (local) Object.assign(local, data);
       toast('Card updated', '✓');
     } else {
       const maxPos = Math.max(0, ...cards.filter(c=>c.column_id===data.column_id).map(c=>c.position||0));
-      const {error} = await sb.from('cards').insert({...data, position: maxPos + 1});
+      const {data:newCard, error} = await sb.from('cards').insert({...data, position: maxPos+1}).select().single();
       if (error) { toast('Save failed: ' + error.message, '✕'); saveBtn.disabled=false; saveBtn.textContent='Save Card'; return; }
+      cards.push(newCard);
       toast('Card created', '✓');
     }
-    // Realtime will refresh cards automatically
   } else {
-    // Fallback localStorage
     if (editingCardId) {
       const card = cards.find(c => c.id === editingCardId);
       Object.assign(card, data);
       toast('Card updated', '✓');
     } else {
-      cards.push({id: Math.random().toString(36).slice(2), position: cards.length, ...data});
+      cards.push({id: Math.random().toString(36).slice(2), position: cards.length, comment_count:0, ...data});
       toast('Card created', '✓');
     }
     saveFallback();
-    renderBoard();
-    renderStats();
   }
 
-  saveBtn.disabled = false;
-  saveBtn.textContent = 'Save Card';
+  saveBtn.disabled = false; saveBtn.textContent = 'Save Card';
+  pendingCoverUrl = null; pendingCoverFile = null;
   closeModal('cardModal');
+  renderBoard(); renderStats();
+}
+
+// ── DELETE CARD ──
+async function deleteCard() {
+  if (!editingCardId) return;
+  const card = cards.find(c=>c.id===editingCardId);
+  if (!confirm(`Delete "${card?.title}"? This cannot be undone.`)) return;
+  if (isConnected) {
+    await sb.from('activity').delete().eq('card_id', editingCardId);
+    await sb.from('cards').delete().eq('id', editingCardId);
+  }
+  cards = cards.filter(c=>c.id!==editingCardId);
+  if (!isConnected) saveFallback();
+  closeModal('cardModal');
+  renderBoard(); renderStats();
+  toast('Card deleted', '🗑');
+}
+
+// ── DELETE TAG ──
+function deleteTag(key) {
+  const existing = getCustomTags().filter(t => t.key !== key);
+  saveCustomTags(existing);
+  selTags.delete(key);
+  // Remove from all cards in current project locally
+  cards.forEach(c => {
+    if (c.labels) c.labels = c.labels.filter(l => l !== key);
+  });
+  buildTagPicker();
+  renderTagFilters();
+  renderBoard();
+  toast('Tag removed', '🏷');
+}
+
+// ── COVER IMAGE ──
+function handleImgFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) { toast('Image must be under 3MB', '✕'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingCoverUrl = e.target.result; // base64
+    document.getElementById('imgPreview').src = pendingCoverUrl;
+    document.getElementById('imgPreviewWrap').style.display = 'block';
+    document.getElementById('imgUploadArea').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleImgDrop(e) {
+  e.preventDefault();
+  document.getElementById('imgUploadArea').classList.remove('drag-on');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const fakeInput = {files:[file]};
+    handleImgFile(fakeInput);
+  }
+}
+
+function clearImgPreview() {
+  pendingCoverUrl = ''; // empty string = remove cover
+  document.getElementById('imgPreviewWrap').style.display = 'none';
+  document.getElementById('imgUploadArea').style.display = 'block';
+}
+
+function removeCover() {
+  pendingCoverUrl = '';
+  document.getElementById('thumbWrap').style.display = 'none';
+  document.getElementById('imgUploadArea').style.display = 'block';
+}
+
+// ── COMMENTS ──
+let cardComments = [];
+
+async function loadComments(cardId) {
+  document.getElementById('commentList').innerHTML = '<div style="color:var(--muted);font-size:12px;">Loading…</div>';
+  cardComments = [];
+  if (!isConnected) { document.getElementById('commentList').innerHTML = ''; return; }
+  const {data, error} = await sb.from('activity')
+    .select('*').eq('card_id', cardId).eq('action', 'comment').order('created_at', {ascending:true});
+  if (error) { document.getElementById('commentList').innerHTML = ''; return; }
+  cardComments = data || [];
+  renderComments();
+}
+
+function renderComments() {
+  const list = document.getElementById('commentList');
+  if (!cardComments.length) { list.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:4px 0;">No comments yet.</div>'; return; }
+  list.innerHTML = cardComments.map(c => {
+    const meta = c.meta || {};
+    const name = meta.author_name || 'Team member';
+    const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const time = new Date(c.created_at).toLocaleString('en-PH', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    const isOwn = c.user_id === currentUser?.id;
+    return `<div class="comment-item" data-id="${c.id}">
+      <div class="comment-avatar">${initials}</div>
+      <div class="comment-body">
+        <div class="comment-meta"><strong>${name}</strong> · ${time}${isOwn?`<button class="comment-del" onclick="deleteComment('${c.id}')" title="Delete">✕</button>`:''}</div>
+        <div class="comment-text">${meta.text?.replace(/\n/g,'<br>') || ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function postComment() {
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text || !editingCardId) return;
+  const btn = document.querySelector('.comment-send');
+  btn.disabled = true;
+
+  const name = currentUser?.user_metadata?.full_name || currentUser?.email || 'Team member';
+
+  if (isConnected) {
+    const {data, error} = await sb.from('activity').insert({
+      card_id:    editingCardId,
+      project_id: currentProjectId,
+      user_id:    currentUser?.id,
+      action:     'comment',
+      meta:       {text, author_name: name}
+    }).select().single();
+    if (error) { toast('Failed to post comment', '✕'); btn.disabled=false; return; }
+    cardComments.push(data);
+    // bump comment_count locally
+    const card = cards.find(c=>c.id===editingCardId);
+    if (card) { card.comment_count = (card.comment_count||0)+1; }
+  } else {
+    cardComments.push({id:Math.random().toString(36).slice(2), created_at:new Date().toISOString(), meta:{text, author_name:name}});
+  }
+
+  input.value = '';
+  btn.disabled = false;
+  renderComments();
+  renderBoard();
+  // Scroll to bottom of comment list
+  const list = document.getElementById('commentList');
+  list.scrollTop = list.scrollHeight;
+}
+
+async function deleteComment(commentId) {
+  if (!confirm('Delete this comment?')) return;
+  if (isConnected) {
+    await sb.from('activity').delete().eq('id', commentId);
+    const card = cards.find(c=>c.id===editingCardId);
+    if (card && card.comment_count > 0) card.comment_count--;
+  }
+  cardComments = cardComments.filter(c=>c.id!==commentId);
+  renderComments();
+  renderBoard();
 }
 
 // ── FILTERS ──
