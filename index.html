@@ -271,12 +271,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
           <select class="field-select" id="cAssignee">
             <option value="">Unassigned</option>
             <option value="HE">Heinrich</option>
-            <option value="AL">Alex</option>
-            <option value="MR">Maria</option>
-            <option value="JD">Juan</option>
-            <option value="KL">Kyla</option>
-            <option value="RB">Rico</option>
-            <option value="SN">Sofia</option>
           </select>
         </div>
         <div class="modal-section">
@@ -337,14 +331,8 @@ const SYSTEM_TAGS = [
 
 const MEMBER_BG = {
   HE:'linear-gradient(135deg,#4f6ef7,#7c3aed)',
-  AL:'linear-gradient(135deg,#10b981,#059669)',
-  MR:'linear-gradient(135deg,#f59e0b,#d97706)',
-  JD:'linear-gradient(135deg,#ef4444,#dc2626)',
-  KL:'linear-gradient(135deg,#8b5cf6,#7c3aed)',
-  RB:'linear-gradient(135deg,#06b6d4,#0891b2)',
-  SN:'linear-gradient(135deg,#f97316,#ea580c)',
 };
-const MEMBERS = ['HE','AL','MR','JD','KL','RB','SN'];
+const MEMBERS = ['HE'];
 
 // ── STATE ──
 let projects   = [];   // [{id, name, slug}]
@@ -371,7 +359,7 @@ async function init() {
   try {
     await loadFromSupabase();
     isConnected = true;
-    setBanner(true, `Live sync active — all ${MEMBERS.length}+ team members see changes in real time`);
+    setBanner(true, `Live sync active — invite your team to the Vercel URL to collaborate`);
     document.getElementById('rtBadge').style.display = 'inline-flex';
     document.getElementById('newCardBtn').disabled = false;
     subscribeRealtime();
