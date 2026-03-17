@@ -450,6 +450,55 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .tp-custom-input{width:36px;height:36px;border-radius:8px;border:1px solid var(--border2);cursor:pointer;padding:2px;background:var(--surface2);}
 .tp-preview{height:5px;border-radius:3px;margin-top:14px;transition:background .3s;}
 
+
+/* ═══════════════════════════════════
+   MEMBER TASKS PANEL
+═══════════════════════════════════ */
+.member-panel-overlay{position:fixed;inset:0;z-index:599;background:rgba(15,23,42,0.35);backdrop-filter:blur(2px);display:none;}
+.member-panel-overlay.open{display:block;}
+.member-panel{position:fixed;top:0;right:0;bottom:0;z-index:600;width:420px;max-width:95vw;background:var(--surface);border-left:1px solid var(--border2);box-shadow:-8px 0 40px rgba(0,0,0,0.12);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;}
+.member-panel.open{transform:translateX(0);}
+.member-panel-head{padding:20px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
+.member-panel-profile{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+.member-panel-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:var(--shadow);}
+.member-panel-name{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text);}
+.member-panel-email{font-size:11.5px;color:var(--muted2);margin-top:2px;}
+.member-panel-close{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:7px;background:var(--surface3);border:none;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s;}
+.member-panel-close:hover{background:var(--border2);color:var(--text);}
+.mp-stats{display:flex;gap:8px;margin-bottom:4px;}
+.mp-stat{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:9px 10px;text-align:center;}
+.mp-stat-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--text);}
+.mp-stat-label{font-size:9.5px;color:var(--muted2);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:1px;}
+.member-panel-body{flex:1;overflow-y:auto;padding:14px 16px;}
+.member-panel-body::-webkit-scrollbar{width:4px;}
+.member-panel-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.mp-section{margin-bottom:18px;}
+.mp-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.mp-section-count{background:var(--surface3);border:1px solid var(--border);padding:1px 7px;border-radius:20px;font-size:10px;}
+.mp-card{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;cursor:pointer;transition:all .13s;background:var(--surface);}
+.mp-card:hover{border-color:var(--border2);box-shadow:var(--shadow);transform:translateY(-1px);}
+[data-theme="dark"] .mp-card{background:var(--surface2);}
+.mp-card-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;min-height:18px;}
+.mp-card-body{flex:1;min-width:0;}
+.mp-card-title{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.35;margin-bottom:4px;}
+.mp-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.mp-card-project{font-size:10.5px;color:var(--muted2);}
+.mp-card-col{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px;background:var(--surface3);color:var(--muted2);border:1px solid var(--border);}
+.mp-card-due{font-size:10.5px;color:var(--muted2);}
+.mp-card-due.overdue{color:var(--danger);font-weight:600;}
+.mp-card-due.soon{color:var(--warn);font-weight:600;}
+.mp-empty{text-align:center;padding:28px 0;color:var(--muted2);font-size:12.5px;}
+.mp-empty-icon{font-size:26px;margin-bottom:8px;opacity:.6;}
+.mp-filter-row{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;}
+.mp-filter-btn{padding:4px 11px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--muted2);font-family:inherit;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s;}
+.mp-filter-btn:hover{border-color:var(--brand);color:var(--brand);}
+.mp-filter-btn.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+
+/* PROJECT TAB DELETE */
+.project-tab-wrap{position:relative;display:inline-flex;align-items:center;}
+.project-tab-del{position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--danger);border:none;color:#fff;font-size:8px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;font-weight:700;z-index:10;}
+.project-tab-wrap:hover .project-tab-del{display:flex;}
+
 </style>
 </head>
 <body>
@@ -1168,7 +1217,10 @@ function render() {
 function renderTabs() {
   const c = document.getElementById('projectTabs');
   c.innerHTML = projects.map(p =>
-    `<button class="project-tab${p.id===currentProjectId?' active':''}" onclick="switchProject('${p.id}','${p.name}')">${p.name}</button>`
+    `<div class="project-tab-wrap">
+      <button class="project-tab${p.id===currentProjectId?' active':''}" onclick="switchProject('${p.id}','${p.name}')">${p.name}</button>
+      <button class="project-tab-del" onclick="event.stopPropagation();deleteProject('${p.id}','${p.name}')" title="Delete project">✕</button>
+    </div>`
   ).join('') + `<button class="project-tab" onclick="addProject()" style="padding:5px 9px;" title="New project">＋</button>`;
 
   const proj = projects.find(p=>p.id===currentProjectId);
@@ -1328,8 +1380,8 @@ function renderMembers() {
   const vis = TEAM_MEMBERS.slice(0,6);
   const extra = TEAM_MEMBERS.length - 6;
   document.getElementById('memberStack').innerHTML =
-    vis.map(m => `<div class="avatar-chip" style="background:${m.color}" title="${m.name}">${m.initials}</div>`).join('') +
-    (extra > 0 ? `<div class="member-count">+${extra}</div>` : '');
+    vis.map(m => `<div class="avatar-chip" style="background:${m.color};cursor:pointer;" title="View ${m.name}'s tasks" onclick="openMemberPanel('${m.id}')">${m.initials}</div>`).join('') +
+    (extra > 0 ? `<div class="member-count" style="cursor:pointer;" onclick="openMemberPanel(null)" title="View all">+${extra}</div>` : '');
 }
 
 function renderTagFilters() {
@@ -2435,6 +2487,194 @@ function closeDeadlinePanel() {
   document.getElementById('deadlinePanel')?.classList.remove('open');
 }
 
+
+// ═══════════════════════════════════════════════
+// MEMBER TASKS PANEL
+// ═══════════════════════════════════════════════
+let mpFilter = 'all';
+let mpMemberId = null;
+
+function openMemberPanel(memberId) {
+  const member = memberId
+    ? TEAM_MEMBERS.find(m => m.id === memberId)
+    : null;
+
+  if (!member && memberId) return;
+
+  mpMemberId = memberId;
+  mpFilter = 'all';
+
+  // Set profile info
+  document.getElementById('mpAvatar').textContent = member ? member.initials : '👥';
+  document.getElementById('mpAvatar').style.background = member ? member.color : 'var(--brand)';
+  document.getElementById('mpName').textContent = member ? member.name : 'All Members';
+  document.getElementById('mpEmail').textContent = member ? (member.email || '') : 'Tasks across all team members';
+
+  // Reset filters
+  document.querySelectorAll('.mp-filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.mp-filter-btn').classList.add('active');
+
+  renderMpCards();
+
+  document.getElementById('memberPanelOverlay').classList.add('open');
+  document.getElementById('memberPanel').classList.add('open');
+}
+
+function closeMemberPanel() {
+  document.getElementById('memberPanel').classList.remove('open');
+  document.getElementById('memberPanelOverlay').classList.remove('open');
+}
+
+function setMpFilter(filter, el) {
+  mpFilter = filter;
+  document.querySelectorAll('.mp-filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderMpCards();
+}
+
+function renderMpCards() {
+  // Get all cards assigned to this member across ALL projects
+  const doneColIds = new Set(columns.filter(c => c.title === 'Done').map(c => c.id));
+  const now = new Date();
+
+  let memberCards = cards.filter(c => {
+    if (mpMemberId) return c.assignee === mpMemberId;
+    return c.assignee && c.assignee !== ''; // all assigned cards
+  });
+
+  // Stats (always based on all, not filtered)
+  const total   = memberCards.length;
+  const done    = memberCards.filter(c => doneColIds.has(c.column_id)).length;
+  const open    = total - done;
+  const overdue = memberCards.filter(c => {
+    if (!c.due_date || doneColIds.has(c.column_id)) return false;
+    return new Date(c.due_date) < now;
+  }).length;
+
+  document.getElementById('mpTotal').textContent   = total;
+  document.getElementById('mpOpen').textContent    = open;
+  document.getElementById('mpDone').textContent    = done;
+  document.getElementById('mpOverdue').textContent = overdue;
+
+  // Apply filter
+  if (mpFilter === 'done')    memberCards = memberCards.filter(c => doneColIds.has(c.column_id));
+  if (mpFilter === 'open')    memberCards = memberCards.filter(c => !doneColIds.has(c.column_id));
+  if (mpFilter === 'overdue') memberCards = memberCards.filter(c => {
+    if (!c.due_date || doneColIds.has(c.column_id)) return false;
+    return new Date(c.due_date) < now;
+  });
+
+  // Sort: overdue first, then by due date, then no date
+  memberCards.sort((a, b) => {
+    const aDue = a.due_date ? new Date(a.due_date) : null;
+    const bDue = b.due_date ? new Date(b.due_date) : null;
+    if (aDue && bDue) return aDue - bDue;
+    if (aDue) return -1;
+    if (bDue) return 1;
+    return 0;
+  });
+
+  const list = document.getElementById('mpCardList');
+  if (!memberCards.length) {
+    list.innerHTML = `<div class="mp-empty"><div class="mp-empty-icon">📭</div>No ${mpFilter === 'all' ? '' : mpFilter + ' '}tasks found</div>`;
+    return;
+  }
+
+  // Group by project
+  const byProject = {};
+  memberCards.forEach(c => {
+    const proj = projects.find(p => p.id === c.project_id);
+    const projName = proj?.name || 'Unknown Project';
+    if (!byProject[projName]) byProject[projName] = [];
+    byProject[projName].push(c);
+  });
+
+  list.innerHTML = Object.entries(byProject).map(([projName, pCards]) => {
+    const cardHtml = pCards.map(c => {
+      const col = columns.find(x => x.id === c.column_id);
+      const isDone = doneColIds.has(c.column_id);
+      const colColor = col?.color || '#94a3b8';
+
+      let dueHtml = '';
+      if (c.due_date) {
+        const due = new Date(c.due_date);
+        const diff = (due - now) / 86400000;
+        const dueLabel = due.toLocaleDateString('en-PH', {month:'short', day:'numeric'});
+        const cls = diff < 0 ? 'overdue' : diff < 2 ? 'soon' : '';
+        const prefix = diff < 0 ? '⚠ Overdue · ' : diff < 1 ? '⏰ Today · ' : '';
+        dueHtml = `<span class="mp-card-due ${cls}">${prefix}${dueLabel}</span>`;
+      }
+
+      const priorityDot = {high:'var(--danger)',med:'var(--warn)',low:'var(--success)'}[c.priority||'low'];
+      const assigneeMember = mpMemberId ? null : TEAM_MEMBERS.find(m => m.id === c.assignee);
+
+      return `<div class="mp-card" onclick="closeMemberPanel();switchProject('${c.project_id}','${projName}');setTimeout(()=>openEditCard('${c.id}'),300)">
+        <div class="mp-card-bar" style="background:${colColor}${isDone?';opacity:.4':''}"></div>
+        <div class="mp-card-body">
+          <div class="mp-card-title" style="${isDone?'text-decoration:line-through;opacity:.6':''}">
+            ${c.title}
+          </div>
+          <div class="mp-card-meta">
+            <span class="mp-card-col" style="border-color:${colColor}30;color:${isDone?'var(--success)':'var(--muted2)'}">
+              ${isDone?'✓ ':''} ${col?.title || 'Unknown'}
+            </span>
+            <span style="width:5px;height:5px;border-radius:50%;background:${priorityDot};display:inline-block;flex-shrink:0;"></span>
+            ${dueHtml}
+            ${assigneeMember ? `<span class="mp-card-project" style="color:${assigneeMember.color.includes('135deg') ? 'var(--brand)' : assigneeMember.color}">${assigneeMember.name}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="mp-section">
+      <div class="mp-section-title">${projName} <span class="mp-section-count">${pCards.length}</span></div>
+      ${cardHtml}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// DELETE PROJECT
+// ═══════════════════════════════════════════════
+async function deleteProject(projectId, projectName) {
+  if (projects.length <= 1) {
+    toast('Cannot delete the last project', '✕');
+    return;
+  }
+  if (!confirm(`Delete project "${projectName}" and ALL its cards? This cannot be undone.`)) return;
+
+  // Switch to another project first
+  const other = projects.find(p => p.id !== projectId);
+  if (other) await switchProject(other.id, other.name);
+
+  if (isConnected) {
+    _suppressRealtime = true;
+    try {
+      // Cascade: delete cards → columns → project
+      // (FK cascades handle activity/notifications automatically)
+      const projCols = columns.filter(c => c.project_id === projectId).map(c => c.id);
+      if (projCols.length) {
+        await sb.from('cards').delete().in('column_id', projCols);
+      }
+      await sb.from('columns').delete().eq('project_id', projectId);
+      await sb.from('projects').delete().eq('id', projectId);
+    } finally {
+      setTimeout(() => { _suppressRealtime = false; }, 1200);
+    }
+  }
+
+  // Update local state
+  cards   = cards.filter(c => !columns.find(col => col.project_id === projectId && col.id === c.column_id));
+  columns = columns.filter(c => c.project_id !== projectId);
+  projects = projects.filter(p => p.id !== projectId);
+
+  if (!isConnected) saveFallback();
+  renderTabs();
+  renderBoard();
+  renderStats();
+  toast(`Project "${projectName}" deleted`, '🗑');
+}
+
 // ── KEYBOARD ──
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal('cardModal'); closeModal('colModal'); closeLightbox(); }
@@ -2494,6 +2734,39 @@ init();
     </div>
   </div>
   <div class="tp-preview" id="themePreview"></div>
+</div>
+
+
+<!-- MEMBER TASKS PANEL OVERLAY -->
+<div class="member-panel-overlay" id="memberPanelOverlay" onclick="closeMemberPanel()"></div>
+
+<!-- MEMBER TASKS PANEL -->
+<div class="member-panel" id="memberPanel">
+  <div class="member-panel-head">
+    <div class="member-panel-profile">
+      <div class="member-panel-avatar" id="mpAvatar"></div>
+      <div>
+        <div class="member-panel-name" id="mpName"></div>
+        <div class="member-panel-email" id="mpEmail"></div>
+      </div>
+    </div>
+    <div class="mp-stats">
+      <div class="mp-stat"><div class="mp-stat-val" id="mpTotal">0</div><div class="mp-stat-label">Total</div></div>
+      <div class="mp-stat"><div class="mp-stat-val" id="mpOpen">0</div><div class="mp-stat-label">Open</div></div>
+      <div class="mp-stat"><div class="mp-stat-val" id="mpDone">0</div><div class="mp-stat-label">Done</div></div>
+      <div class="mp-stat"><div class="mp-stat-val" id="mpOverdue">0</div><div class="mp-stat-label">Overdue</div></div>
+    </div>
+    <button class="member-panel-close" onclick="closeMemberPanel()">✕</button>
+  </div>
+  <div class="member-panel-body">
+    <div class="mp-filter-row">
+      <button class="mp-filter-btn active" onclick="setMpFilter('all',this)">All</button>
+      <button class="mp-filter-btn" onclick="setMpFilter('open',this)">Open</button>
+      <button class="mp-filter-btn" onclick="setMpFilter('done',this)">Done</button>
+      <button class="mp-filter-btn" onclick="setMpFilter('overdue',this)">Overdue</button>
+    </div>
+    <div id="mpCardList"></div>
+  </div>
 </div>
 
 </div><!-- /appScreen -->
