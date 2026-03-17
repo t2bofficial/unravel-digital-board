@@ -118,10 +118,19 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .search-box:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
 .search-box input{background:transparent;border:none;outline:none;color:var(--text);font-family:inherit;font-size:12px;width:150px;}
 .search-box input::placeholder{color:var(--muted2);}
-.member-stack{display:flex;}
+.member-stack{display:flex;align-items:center;position:relative;}
 .member-stack .avatar-chip{margin-left:-6px;}
 .member-stack .avatar-chip:first-child{margin-left:0;}
-.member-count{width:28px;height:28px;border-radius:50%;background:var(--surface3);border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted2);margin-left:-6px;box-shadow:0 0 0 1px var(--border);}
+.member-count{width:28px;height:28px;border-radius:50%;background:var(--surface3);border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted2);margin-left:-6px;box-shadow:0 0 0 1px var(--border);cursor:pointer;transition:all .14s;}
+.member-count:hover{background:var(--brand);color:#fff;border-color:var(--brand);}
+/* Member overflow dropdown */
+.member-overflow-menu{position:absolute;top:38px;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:8px;min-width:200px;z-index:300;display:none;}
+.member-overflow-menu.open{display:block;}
+.member-overflow-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--r);cursor:pointer;transition:background .12s;}
+.member-overflow-item:hover{background:var(--surface2);}
+.member-overflow-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
+.member-overflow-name{font-size:12.5px;font-weight:500;color:var(--text);}
+.member-overflow-email{font-size:10.5px;color:var(--muted2);}
 
 /* BOARD */
 .board-wrap{padding:16px 24px 60px;overflow-x:auto;min-height:calc(100vh - 220px);position:relative;z-index:1;background:var(--bg);}
@@ -499,6 +508,47 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .project-tab-del{position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--danger);border:none;color:#fff;font-size:8px;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;font-weight:700;z-index:10;}
 .project-tab-wrap:hover .project-tab-del{display:flex;}
 
+
+/* NOTIFICATION BELL */
+.notif-btn{position:relative;width:32px;height:32px;border-radius:8px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .14s;flex-shrink:0;}
+.notif-btn:hover{color:var(--text);border-color:var(--brand);}
+.notif-badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--surface);}
+.notif-badge.show{display:flex;}
+/* NOTIFICATION PANEL */
+.notif-panel{position:fixed;top:60px;right:16px;z-index:500;background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:340px;max-height:480px;box-shadow:var(--shadow-lg);display:none;flex-direction:column;overflow:hidden;animation:panelIn .18s ease;}
+.notif-panel.open{display:flex;}
+.notif-panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.notif-panel-title{font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--text);}
+.notif-panel-actions{display:flex;gap:8px;align-items:center;}
+.notif-mark-all{font-size:11px;color:var(--brand);cursor:pointer;font-weight:500;background:none;border:none;font-family:inherit;padding:0;}
+.notif-mark-all:hover{text-decoration:underline;}
+.notif-close-btn{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:0;}
+.notif-list{overflow-y:auto;flex:1;}
+.notif-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--muted2);font-size:13px;gap:10px;}
+.notif-empty-icon{font-size:28px;opacity:.5;}
+.notif-item{display:flex;gap:10px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;position:relative;}
+.notif-item:hover{background:var(--surface2);}
+.notif-item.unread{background:var(--brand-light);}
+[data-theme="dark"] .notif-item.unread{background:rgba(37,99,235,0.07);}
+.notif-item.unread::before{content:'';position:absolute;left:6px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--brand);}
+.notif-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:1px;}
+.notif-icon.mention{background:#fce7f3;color:#be185d;}
+.notif-icon.assign{background:#dbeafe;color:#1d4ed8;}
+[data-theme="dark"] .notif-icon.mention{background:rgba(190,24,93,0.15);color:#f472b6;}
+[data-theme="dark"] .notif-icon.assign{background:rgba(29,78,216,0.15);color:#93c5fd;}
+.notif-body{flex:1;min-width:0;}
+.notif-text{font-size:12.5px;line-height:1.45;color:var(--text);}
+.notif-text strong{font-weight:600;}
+.notif-mention{color:var(--brand);font-weight:600;}
+.notif-time{font-size:10.5px;color:var(--muted2);margin-top:3px;}
+.notif-card-title{font-size:11px;color:var(--muted2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* @MENTION AUTOCOMPLETE */
+.mention-dropdown{position:fixed;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);box-shadow:var(--shadow-lg);z-index:2000;min-width:200px;overflow:hidden;display:none;}
+.mention-dropdown.open{display:block;}
+.mention-opt{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background .1s;font-size:12.5px;}
+.mention-opt:hover,.mention-opt.focused{background:var(--surface2);}
+.mention-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
+
 </style>
 </head>
 <body>
@@ -615,9 +665,18 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   <div class="header-right">
     <div id="rtBadge" style="display:none;" class="rt-badge"><span class="rt-dot"></span>Live</div>
     <div class="member-stack" id="memberStack"></div>
+    <button class="notif-btn" onclick="toggleNotifPanel()" id="bellBtn" title="Notifications">
+      🔔<span class="notif-badge" id="notifBadge"></span>
+    </button>
     <button class="theme-toggle" onclick="toggleThemePanel()" title="Appearance & theme" id="themeBtn">🎨</button>
     <button class="btn btn-primary" id="newCardBtn" onclick="openNewCard()" disabled>+ New Card</button>
-    <div class="avatar-chip" style="background:linear-gradient(135deg,#2563eb,#7c3aed);cursor:pointer;" title="Sign out — click to sign out" onclick="if(confirm('Sign out?'))signOut()" id="userAvatar">HE</div>
+    <div style="position:relative;flex-shrink:0;">
+      <div class="avatar-chip" style="background:linear-gradient(135deg,#2563eb,#7c3aed);cursor:pointer;" title="My notifications · right-click to sign out"
+        onclick="toggleNotifPanel()"
+        oncontextmenu="event.preventDefault();if(confirm('Sign out?'))signOut()"
+        id="userAvatar">HE</div>
+      <span id="userNotifDot" style="display:none;position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--danger);border:2px solid var(--surface);"></span>
+    </div>
   </div>
 </header>
 
@@ -631,7 +690,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   <div class="toolbar-right">
     <div class="search-box">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="searchInput" placeholder="Search cards… (⌘K)" oninput="renderBoard()" />
+      <input type="text" id="searchInput" placeholder="Search cards… (⌘K)" oninput="debouncedSearch()" />
     </div>
     <div id="tagFilterRow" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;"></div>
   </div>
@@ -1030,13 +1089,74 @@ sb.auth.onAuthStateChange((event, session) => {
 
 async function loadAndStart() {
   try {
-    await loadFromSupabase();
+    // Show skeleton immediately — don't wait for data
+    document.getElementById('board').innerHTML =
+      '<div class="loading-state"><div class="spinner"></div><span>Loading board…</span></div>';
+    document.getElementById('statsBar').innerHTML =
+      '<div class="stat" style="opacity:.4">Loading…</div>';
+
+    // Fire ALL initial queries in parallel — not sequential
+    const [projRes, colRes, cardRes, memberRes] = await Promise.all([
+      sb.from('projects').select('*').order('created_at'),
+      sb.from('columns').select('*').order('position'),
+      sb.from('cards').select('id,column_id,project_id,title,description,priority,labels,assignee,due_date,position,is_archived,comment_count,cover_url').eq('is_archived', false).order('position'),
+      sb.from('profiles').select('*').order('created_at'),
+    ]);
+
+    if (projRes.error) throw projRes.error;
+
+    projects = projRes.data || [];
+    columns  = colRes.data  || [];
+    cards    = cardRes.data || [];
+
+    // Seed if first run
+    if (projects.length === 0) {
+      await seedDefaultProjects();
+      const [p2, c2] = await Promise.all([
+        sb.from('projects').select('*').order('created_at'),
+        sb.from('columns').select('*').order('position'),
+      ]);
+      projects = p2.data || [];
+      columns  = c2.data || [];
+    }
+
+    currentProjectId = projects[0]?.id || null;
+
+    // Process team members from parallel result
+    const profileData = memberRes.data || [];
+    if (profileData.length > 0) {
+      TEAM_MEMBERS = profileData
+        .filter(p => p.email_confirmed)
+        .map((p, i) => ({
+          id:       p.id,
+          name:     capitalizeName(p.full_name || p.email?.split('@')[0] || 'Member'),
+          initials: getInitials(p.full_name || p.email?.split('@')[0] || 'Member'),
+          email:    p.email,
+          color:    getMemberColor(i),
+        }));
+    } else {
+      TEAM_MEMBERS = [{
+        id:       currentUser?.id,
+        name:     capitalizeName(currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Me'),
+        initials: getInitials(currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Me'),
+        email:    currentUser?.email,
+        color:    AVATAR_COLORS[0],
+      }];
+    }
+
     isConnected = true;
     setBanner(true, `Live — logged in as ${currentUser?.email}`);
     document.getElementById('rtBadge').style.display = 'inline-flex';
     document.getElementById('newCardBtn').disabled = false;
+
+    render();
+    renderMembers();
+
+    // Non-blocking: subscribe realtime + load notifications after UI is visible
     subscribeRealtime();
-    await loadTeamMembers(); // load real user list from profiles table
+    loadNotifications().catch(() => {});
+    startDeadlineChecker();
+
   } catch(e) {
     console.error(e);
     setBanner(false, 'Could not load board data — ' + e.message);
@@ -1049,34 +1169,7 @@ function setBanner(online, msg) {
   document.getElementById('bannerText').innerHTML = `<strong>${online ? '🟢 Connected' : '🟡 Notice'}:</strong> ${msg}`;
 }
 
-// ── SUPABASE LOAD ──
-async function loadFromSupabase() {
-  // 1. Projects
-  const {data: proj, error: pErr} = await sb.from('projects').select('*').order('created_at');
-  if (pErr) throw pErr;
-  projects = proj || [];
-
-  // Seed default projects if empty
-  if (projects.length === 0) {
-    await seedDefaultProjects();
-    const {data: proj2} = await sb.from('projects').select('*').order('created_at');
-    projects = proj2 || [];
-  }
-
-  currentProjectId = projects[0]?.id || null;
-
-  // 2. Columns for all projects
-  const {data: cols, error: cErr} = await sb.from('columns').select('*').order('position');
-  if (cErr) throw cErr;
-  columns = cols || [];
-
-  // 3. Cards (non-archived)
-  const {data: cds, error: cdErr} = await sb.from('cards').select('*').eq('is_archived', false).order('position');
-  if (cdErr) throw cdErr;
-  cards = cds || [];
-
-  render();
-}
+// loadFromSupabase is now inlined into loadAndStart for parallel loading
 
 async function seedDefaultProjects() {
   const defaults = [
@@ -1154,6 +1247,36 @@ function subscribeRealtime() {
       projects = data || [];
       renderTabs();
     })
+    // Live activity updates — if card detail is open, refresh activity tab instantly
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'activity'}, payload => {
+      if (!editingCardId) return;
+      if (payload.new?.card_id !== editingCardId) return;
+      // Append new activity row without full reload
+      const a = payload.new;
+      const act = ACT_MAP[a.action] || {icon:'•', cls:'', label:()=>a.action};
+      const meta = a.meta || {};
+      const name = meta.author_name || 'Someone';
+      const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const d = new Date(a.created_at);
+      const time = d.toLocaleString('en-PH',{month:'short',day:'numeric'}) + ' at ' +
+                   d.toLocaleString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true});
+      const commentPreview = a.action==='comment' && meta.text
+        ? `<div class="activity-comment-preview">${meta.text.slice(0,120)}${meta.text.length>120?'…':''}</div>` : '';
+      const row = document.createElement('div');
+      row.className = 'activity-item';
+      row.innerHTML = `<div class="activity-icon ${act.cls}">${act.icon}</div>
+        <div class="activity-body">
+          <div class="activity-text"><strong>${name}</strong> ${act.label(meta)}</div>
+          ${commentPreview}
+          <div class="activity-time">${time}</div>
+        </div>`;
+      const log = document.getElementById('activityLog');
+      if (log) {
+        // Remove "no activity" placeholder if present
+        if (log.querySelector('.mp-empty') || log.textContent.includes('No activity')) log.innerHTML = '';
+        log.insertBefore(row, log.firstChild);
+      }
+    })
     .subscribe();
 }
 
@@ -1218,13 +1341,36 @@ function renderTabs() {
   const c = document.getElementById('projectTabs');
   c.innerHTML = projects.map(p =>
     `<div class="project-tab-wrap">
-      <button class="project-tab${p.id===currentProjectId?' active':''}" onclick="switchProject('${p.id}','${p.name}')">${p.name}</button>
+      <button class="project-tab${p.id===currentProjectId?' active':''}"
+        onclick="switchProject('${p.id}','${p.name}')"
+        ondblclick="event.stopPropagation();renameProject('${p.id}')"
+        title="${p.name} — double-click to rename">${p.name}</button>
       <button class="project-tab-del" onclick="event.stopPropagation();deleteProject('${p.id}','${p.name}')" title="Delete project">✕</button>
     </div>`
   ).join('') + `<button class="project-tab" onclick="addProject()" style="padding:5px 9px;" title="New project">＋</button>`;
 
   const proj = projects.find(p=>p.id===currentProjectId);
   if (proj) document.getElementById('boardTitle').textContent = proj.name;
+}
+
+async function renameProject(projectId) {
+  const proj = projects.find(p => p.id === projectId);
+  if (!proj) return;
+  const newName = prompt('Rename project:', proj.name)?.trim();
+  if (!newName || newName === proj.name) return;
+
+  proj.name = newName;
+  if (isConnected) {
+    const {error} = await sb.from('projects').update({name: newName}).eq('id', projectId);
+    if (error) { toast('Rename failed: ' + error.message, '✕'); return; }
+  } else {
+    saveFallback();
+  }
+  renderTabs();
+  if (currentProjectId === projectId) {
+    document.getElementById('boardTitle').textContent = newName;
+  }
+  toast(`Renamed to "${newName}"`, '✓');
 }
 
 function renderBoard() {
@@ -1353,6 +1499,7 @@ function buildCard(card, col) {
   return el;
 }
 
+let _lastStatsHash = '';
 function renderStats() {
   const projCards = cards.filter(c => {
     const col = columns.find(x => x.id === c.column_id);
@@ -1377,11 +1524,47 @@ function renderStats() {
 }
 
 function renderMembers() {
-  const vis = TEAM_MEMBERS.slice(0,6);
-  const extra = TEAM_MEMBERS.length - 6;
-  document.getElementById('memberStack').innerHTML =
-    vis.map(m => `<div class="avatar-chip" style="background:${m.color};cursor:pointer;" title="View ${m.name}'s tasks" onclick="openMemberPanel('${m.id}')">${m.initials}</div>`).join('') +
-    (extra > 0 ? `<div class="member-count" style="cursor:pointer;" onclick="openMemberPanel(null)" title="View all">+${extra}</div>` : '');
+  const MAX_VIS = 4;
+  const vis   = TEAM_MEMBERS.slice(0, MAX_VIS);
+  const extra = TEAM_MEMBERS.slice(MAX_VIS);
+  const stack = document.getElementById('memberStack');
+
+  let html = vis.map(m =>
+    `<div class="avatar-chip" style="background:${m.color};cursor:pointer;" title="${m.name}'s tasks" onclick="openMemberPanel('${m.id}')">${m.initials}</div>`
+  ).join('');
+
+  if (extra.length > 0) {
+    const overflowItems = TEAM_MEMBERS.map(m =>
+      `<div class="member-overflow-item" onclick="closeOverflowMenu();openMemberPanel('${m.id}')">
+        <div class="member-overflow-avatar" style="background:${m.color}">${m.initials}</div>
+        <div>
+          <div class="member-overflow-name">${m.name}</div>
+          <div class="member-overflow-email">${m.email||''}</div>
+        </div>
+      </div>`
+    ).join('');
+
+    html += `<div class="member-count" onclick="toggleOverflowMenu(event)" title="All team members">+${extra.length}</div>
+    <div class="member-overflow-menu" id="memberOverflowMenu">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);padding:4px 10px 8px;">All Members</div>
+      ${overflowItems}
+    </div>`;
+  }
+
+  stack.innerHTML = html;
+}
+
+function toggleOverflowMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('memberOverflowMenu');
+  if (!menu) return;
+  menu.classList.toggle('open');
+  if (menu.classList.contains('open')) {
+    setTimeout(() => document.addEventListener('click', closeOverflowMenu, {once:true}), 10);
+  }
+}
+function closeOverflowMenu() {
+  document.getElementById('memberOverflowMenu')?.classList.remove('open');
 }
 
 function renderTagFilters() {
@@ -1513,6 +1696,7 @@ async function openEditCard(cardId) {
 
   document.getElementById('cardModal').classList.add('open');
   await loadComments(cardId);
+  setTimeout(setupMentionListener, 100);
 }
 
 function buildColSelect(selId) {
@@ -1830,7 +2014,7 @@ function renderComments() {
       <div class="comment-avatar">${initials}</div>
       <div class="comment-body">
         <div class="comment-meta"><strong>${name}</strong> · ${time}${isOwn?`<button class="comment-del" onclick="deleteComment('${c.id}')" title="Delete">✕</button>`:''}</div>
-        <div class="comment-text">${meta.text?.replace(/\n/g,'<br>') || ''}</div>
+        <div class="comment-text">${(meta.text||'').replace(/@(\w+)/g,'<span class=\"notif-mention\">@$1</span>').replace(/\n/g,'<br>')}</div>
       </div>
     </div>`;
   }).join('');
@@ -1842,22 +2026,33 @@ async function postComment() {
   if (!text || !editingCardId) return;
   const btn = document.querySelector('.comment-send');
   btn.disabled = true;
+  closeMentionDropdown();
 
   const name = currentUser?.user_metadata?.full_name || currentUser?.email || 'Team member';
+  const card = cards.find(c=>c.id===editingCardId);
+  const cardTitle = card?.title || 'a card';
+
+  // Detect @mentions
+  const mentionedNames = [...text.matchAll(/@(\w+)/g)].map(m=>m[1].toLowerCase());
+  const mentionedMembers = TEAM_MEMBERS.filter(m =>
+    mentionedNames.some(mn => m.name.toLowerCase().split(' ').some(w=>w.startsWith(mn)) || (m.email||'').split('@')[0].toLowerCase().startsWith(mn))
+    && m.id !== currentUser?.id
+  );
 
   if (isConnected) {
     const {data, error} = await sb.from('activity').insert({
-      card_id:    editingCardId,
-      project_id: currentProjectId,
-      user_id:    currentUser?.id,
-      action:     'comment',
-      meta:       {text, author_name: name}
+      card_id: editingCardId, project_id: currentProjectId,
+      user_id: currentUser?.id, action: 'comment',
+      meta: {text, author_name: name}
     }).select().single();
     if (error) { toast('Failed to post comment', '✕'); btn.disabled=false; return; }
     cardComments.push(data);
-    // bump comment_count locally
-    const card = cards.find(c=>c.id===editingCardId);
-    if (card) { card.comment_count = (card.comment_count||0)+1; }
+    if (card) card.comment_count = (card.comment_count||0)+1;
+
+    // Notify @mentioned members
+    for (const m of mentionedMembers) {
+      createNotification({type:'mention', to_user_id:m.id, from_name:name, card_id:editingCardId, card_title:cardTitle, project_id:currentProjectId}).catch(()=>{});
+    }
   } else {
     cardComments.push({id:Math.random().toString(36).slice(2), created_at:new Date().toISOString(), meta:{text, author_name:name}});
   }
@@ -1866,7 +2061,6 @@ async function postComment() {
   btn.disabled = false;
   renderComments();
   renderBoard();
-  // Scroll to bottom of comment list
   const list = document.getElementById('commentList');
   list.scrollTop = list.scrollHeight;
 }
@@ -2073,8 +2267,9 @@ async function lbRemoveCover() {
 }
 
 
-// ── TEAM MEMBERS (dynamic from Supabase) ──
+// ── TEAM MEMBERS (fallback refresh) ──
 async function loadTeamMembers() {
+  if (TEAM_MEMBERS.length > 0) return; // already loaded in loadAndStart
   if (!isConnected) {
     // Fallback: just use current user
     TEAM_MEMBERS = [{
@@ -2675,6 +2870,192 @@ async function deleteProject(projectId, projectName) {
   toast(`Project "${projectName}" deleted`, '🗑');
 }
 
+
+// ═══════════════════════════════════════════════
+// NOTIFICATIONS + @MENTION
+// ═══════════════════════════════════════════════
+let notifications = [];
+let unreadCount = 0;
+
+async function createNotification({type,to_user_id,from_name,card_id,card_title,project_id}) {
+  if (!isConnected || !to_user_id) return;
+  try {
+    await sb.from('notifications').insert({
+      to_user_id, from_user_id: currentUser?.id, type, card_id, project_id, is_read:false,
+      meta:{from_name, card_title}
+    });
+  } catch(e) { console.warn('Notification insert failed:', e); }
+}
+
+async function loadNotifications() {
+  if (!isConnected || !currentUser) return;
+  try {
+    const {data} = await sb.from('notifications')
+      .select('*').eq('to_user_id', currentUser.id)
+      .order('created_at', {ascending:false}).limit(30);
+    notifications = data || [];
+    unreadCount = notifications.filter(n=>!n.is_read).length;
+    updateBell();
+    renderNotifications();
+    subscribeNotifications();
+  } catch(e) {}
+}
+
+function subscribeNotifications() {
+  if (!isConnected || !currentUser) return;
+  sb.channel('my-notifs')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:`to_user_id=eq.${currentUser.id}`}, payload => {
+      const n = payload.new;
+      notifications.unshift(n);
+      unreadCount++;
+      updateBell();
+      renderNotifications();
+      const meta = n.meta||{};
+      const msg = n.type==='mention' ? `${meta.from_name} mentioned you in "${meta.card_title}"` : `${meta.from_name} assigned you to "${meta.card_title}"`;
+      toast(msg, n.type==='mention' ? '💬' : '📋');
+    }).subscribe();
+}
+
+function updateBell() {
+  const badge = document.getElementById('notifBadge');
+  if (badge) {
+    if (unreadCount > 0) { badge.textContent = unreadCount>9?'9+':unreadCount; badge.classList.add('show'); }
+    else badge.classList.remove('show');
+  }
+  const dot = document.getElementById('userNotifDot');
+  if (dot) dot.style.display = unreadCount > 0 ? 'block' : 'none';
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifList');
+  if (!list) return;
+  if (!notifications.length) {
+    list.innerHTML = '<div class="notif-empty"><span class="notif-empty-icon">🔕</span>No notifications yet</div>';
+    return;
+  }
+  list.innerHTML = notifications.map(n => {
+    const meta = n.meta||{};
+    const d = new Date(n.created_at);
+    const time = d.toLocaleString('en-PH',{month:'short',day:'numeric'}) + ' at ' + d.toLocaleString('en-PH',{hour:'2-digit',minute:'2-digit',hour12:true});
+    const icon = n.type==='mention'?'💬':'📋';
+    const cls  = n.type==='mention'?'mention':'assign';
+    const msg  = n.type==='mention'
+      ? `<strong>${meta.from_name||'Someone'}</strong> mentioned you in a comment`
+      : `<strong>${meta.from_name||'Someone'}</strong> assigned you to a card`;
+    return `<div class="notif-item${n.is_read?'':' unread'}" onclick="onNotifClick('${n.id}','${n.card_id||''}')">
+      <div class="notif-icon ${cls}">${icon}</div>
+      <div class="notif-body">
+        <div class="notif-text">${msg}</div>
+        ${meta.card_title?`<div class="notif-card-title">📋 ${meta.card_title}</div>`:''}
+        <div class="notif-time">${time}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function onNotifClick(notifId, cardId) {
+  const n = notifications.find(x=>x.id===notifId);
+  if (n && !n.is_read) {
+    n.is_read=true; unreadCount=Math.max(0,unreadCount-1); updateBell(); renderNotifications();
+    if (isConnected) await sb.from('notifications').update({is_read:true}).eq('id',notifId);
+  }
+  closeNotifPanel();
+  if (cardId) { const card=cards.find(c=>c.id===cardId); if (card) openEditCard(cardId); }
+}
+
+async function markAllRead() {
+  notifications.forEach(n=>n.is_read=true); unreadCount=0; updateBell(); renderNotifications();
+  if (isConnected) await sb.from('notifications').update({is_read:true}).eq('to_user_id',currentUser.id);
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  document.getElementById('themePanel')?.classList.remove('open');
+  document.getElementById('memberPanel')?.classList.remove('open');
+  document.getElementById('memberPanelOverlay')?.classList.remove('open');
+  closeOverflowMenu();
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    setTimeout(()=>document.addEventListener('click', outsideNotifPanel, {once:true,capture:true}),10);
+  }
+}
+function outsideNotifPanel(e) {
+  const panel=document.getElementById('notifPanel');
+  const btn=document.getElementById('bellBtn');
+  if (!panel?.contains(e.target) && e.target!==btn && !btn?.contains(e.target)) panel?.classList.remove('open');
+  else if (panel?.classList.contains('open')) setTimeout(()=>document.addEventListener('click',outsideNotifPanel,{once:true,capture:true}),10);
+}
+function closeNotifPanel() { document.getElementById('notifPanel')?.classList.remove('open'); }
+
+// ── @MENTION AUTOCOMPLETE ──
+let mentionState = {active:false, query:'', startPos:0, focusIdx:0};
+
+function setupMentionListener() {
+  const ta = document.getElementById('commentInput');
+  if (!ta || ta._mentionSetup) return;
+  ta._mentionSetup = true;
+  ta.addEventListener('input', onCommentInput);
+  ta.addEventListener('keydown', onCommentKeydown);
+  ta.addEventListener('blur', ()=>setTimeout(closeMentionDropdown,150));
+}
+
+function onCommentInput(e) {
+  const ta=e.target, val=ta.value, pos=ta.selectionStart;
+  const before=val.slice(0,pos);
+  const atMatch=before.match(/@(\w*)$/);
+  if (atMatch) {
+    mentionState={active:true,query:atMatch[1].toLowerCase(),startPos:before.lastIndexOf('@'),focusIdx:0};
+    showMentionDropdown(ta);
+  } else { closeMentionDropdown(); }
+}
+
+function onCommentKeydown(e) {
+  const dd=document.getElementById('mentionDropdown');
+  if (!dd?.classList.contains('open')) return;
+  const opts=dd.querySelectorAll('.mention-opt');
+  if (e.key==='ArrowDown'){e.preventDefault();mentionState.focusIdx=Math.min(mentionState.focusIdx+1,opts.length-1);opts.forEach((o,i)=>o.classList.toggle('focused',i===mentionState.focusIdx));}
+  else if (e.key==='ArrowUp'){e.preventDefault();mentionState.focusIdx=Math.max(mentionState.focusIdx-1,0);opts.forEach((o,i)=>o.classList.toggle('focused',i===mentionState.focusIdx));}
+  else if (e.key==='Enter'||e.key==='Tab'){const f=opts[mentionState.focusIdx];if(f){e.preventDefault();f.click();}}
+  else if (e.key==='Escape'){closeMentionDropdown();}
+}
+
+function showMentionDropdown(ta) {
+  const matches=TEAM_MEMBERS.filter(m=>m.name.toLowerCase().includes(mentionState.query)||(m.email||'').split('@')[0].toLowerCase().includes(mentionState.query)).slice(0,6);
+  const dd=document.getElementById('mentionDropdown');
+  if (!matches.length){closeMentionDropdown();return;}
+  dd.innerHTML=matches.map((m,i)=>`<div class="mention-opt${i===0?' focused':''}" onmousedown="insertMention('${m.name}')"><div class="mention-avatar" style="background:${m.color}">${m.initials}</div><span>${m.name}</span></div>`).join('');
+  const rect=ta.getBoundingClientRect();
+  dd.style.cssText=`left:${rect.left}px;width:${Math.min(220,rect.width)}px;display:block;`;
+  dd.classList.add('open');
+  requestAnimationFrame(()=>{ dd.style.top=(rect.top-dd.offsetHeight-4)+'px'; });
+}
+
+function insertMention(name) {
+  const ta=document.getElementById('commentInput');
+  const val=ta.value, pos=ta.selectionStart;
+  const before=val.slice(0,mentionState.startPos);
+  const after=val.slice(pos);
+  const mention='@'+name.split(' ')[0]+' ';
+  ta.value=before+mention+after;
+  ta.selectionStart=ta.selectionEnd=before.length+mention.length;
+  ta.focus(); closeMentionDropdown();
+}
+function closeMentionDropdown(){mentionState.active=false;document.getElementById('mentionDropdown')?.classList.remove('open');}
+
+function timeAgo(iso){
+  const diff=Math.floor((new Date()-new Date(iso))/1000);
+  if(diff<60)return'just now';if(diff<3600)return Math.floor(diff/60)+'m ago';
+  if(diff<86400)return Math.floor(diff/3600)+'h ago';
+  return Math.floor(diff/86400)+'d ago';
+}
+
+// ── PERFORMANCE: Debounced search ──
+let _searchTimer = null;
+function debouncedSearch() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(renderBoard, 120);
+}
+
 // ── KEYBOARD ──
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal('cardModal'); closeModal('colModal'); closeLightbox(); }
@@ -2768,6 +3149,23 @@ init();
     <div id="mpCardList"></div>
   </div>
 </div>
+
+
+<!-- NOTIFICATION PANEL -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-panel-head">
+    <div class="notif-panel-title">🔔 Notifications</div>
+    <div class="notif-panel-actions">
+      <button class="notif-mark-all" onclick="markAllRead()">Mark all read</button>
+      <button class="notif-close-btn" onclick="closeNotifPanel()">✕</button>
+    </div>
+  </div>
+  <div class="notif-list" id="notifList">
+    <div class="notif-empty"><span class="notif-empty-icon">🔕</span>No notifications yet</div>
+  </div>
+</div>
+<!-- MENTION DROPDOWN -->
+<div class="mention-dropdown" id="mentionDropdown"></div>
 
 </div><!-- /appScreen -->
 </body>
