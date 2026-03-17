@@ -549,6 +549,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .mention-opt:hover,.mention-opt.focused{background:var(--surface2);}
 .mention-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
 
+
+/* Card drag-to-reorder */
+.card.drag-target-above::before{content:'';display:block;height:3px;background:var(--brand);border-radius:2px;margin-bottom:6px;margin-top:-3px;}
+.card.drag-target-below::after{content:'';display:block;height:3px;background:var(--brand);border-radius:2px;margin-top:6px;margin-bottom:-3px;}
+
 </style>
 </head>
 <body>
@@ -957,6 +962,8 @@ let editingCardId    = null;
 let activeFilters    = new Set();
 let selTags          = new Set();
 let dragCardId       = null;
+let dragOverCardId   = null; // card being hovered over during drag
+let dragOverPos      = null; // "above" or "below"
 let isConnected      = false;
 
 
@@ -1401,7 +1408,13 @@ function renderBoard() {
     colEl.dataset.colId = col.id;
     colEl.addEventListener('dragover', e => { e.preventDefault(); colEl.classList.add('drag-over'); });
     colEl.addEventListener('dragleave', () => colEl.classList.remove('drag-over'));
-    colEl.addEventListener('drop', e => { e.preventDefault(); colEl.classList.remove('drag-over'); dropCard(col.id); });
+    colEl.addEventListener('drop', e => {
+      e.preventDefault();
+      colEl.classList.remove('drag-over');
+      // Only handle column-level drop if not already handled by a card
+      if (!dragOverCardId) dropCard(col.id);
+      dragOverCardId = null; dragOverPos = null;
+    });
 
     colEl.innerHTML = `
       <div class="col-header">
@@ -1493,8 +1506,43 @@ function buildCard(card, col) {
   `;
 
   el.addEventListener('click', () => openEditCard(card.id));
-  el.addEventListener('dragstart', () => { dragCardId = card.id; setTimeout(() => el.classList.add('dragging'), 0); });
-  el.addEventListener('dragend', () => { el.classList.remove('dragging'); dragCardId = null; });
+  el.addEventListener('dragstart', e => {
+    dragCardId = card.id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => el.classList.add('dragging'), 0);
+  });
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    dragCardId = null;
+    // Clean up all indicators
+    document.querySelectorAll('.drag-target-above,.drag-target-below').forEach(c=>{
+      c.classList.remove('drag-target-above','drag-target-below');
+    });
+  });
+  el.addEventListener('dragover', e => {
+    if (!dragCardId || dragCardId === card.id) return;
+    e.preventDefault(); e.stopPropagation();
+    const rect = el.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const pos  = e.clientY < midY ? 'above' : 'below';
+    // Clear other indicators
+    document.querySelectorAll('.drag-target-above,.drag-target-below').forEach(c=>{
+      if(c!==el){ c.classList.remove('drag-target-above','drag-target-below'); }
+    });
+    el.classList.toggle('drag-target-above', pos==='above');
+    el.classList.toggle('drag-target-below', pos==='below');
+    dragOverCardId = card.id;
+    dragOverPos = pos;
+  });
+  el.addEventListener('dragleave', () => {
+    el.classList.remove('drag-target-above','drag-target-below');
+  });
+  el.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation();
+    el.classList.remove('drag-target-above','drag-target-below');
+    if (!dragCardId || dragCardId === card.id) return;
+    reorderCard(dragCardId, card.id, dragOverPos || 'below', col.id);
+  });
 
   return el;
 }
@@ -1587,6 +1635,47 @@ function saveCustomTags(tags) {
 }
 
 // ── DRAG & DROP ──
+// Reorder card within/across columns
+async function reorderCard(movingId, targetId, position, targetColId) {
+  const movingCard = cards.find(c => c.id === movingId);
+  const targetCard = cards.find(c => c.id === targetId);
+  if (!movingCard || !targetCard) return;
+
+  // Get all cards in target column, sorted by position
+  let colCards = cards
+    .filter(c => c.column_id === targetColId && c.id !== movingId)
+    .sort((a,b) => (a.position||0) - (b.position||0));
+
+  // Insert moving card at the right spot
+  const targetIdx = colCards.findIndex(c => c.id === targetId);
+  const insertIdx = position === 'above' ? targetIdx : targetIdx + 1;
+  colCards.splice(insertIdx, 0, movingCard);
+
+  // Assign new integer positions
+  const updates = colCards.map((c, i) => ({id: c.id, position: i, column_id: targetColId}));
+
+  // Optimistic update locally
+  updates.forEach(u => {
+    const c = cards.find(x => x.id === u.id);
+    if (c) { c.position = u.position; c.column_id = u.column_id; }
+  });
+  renderBoard();
+
+  if (isConnected) {
+    _suppressRealtime = true;
+    try {
+      // Batch update all affected cards
+      await Promise.all(updates.map(u =>
+        sb.from('cards').update({position: u.position, column_id: u.column_id}).eq('id', u.id)
+      ));
+    } finally {
+      setTimeout(() => { _suppressRealtime = false; }, 800);
+    }
+  } else {
+    saveFallback();
+  }
+}
+
 async function dropCard(targetColId) {
   if (!dragCardId) return;
   const card = cards.find(c => c.id === dragCardId);
@@ -3025,9 +3114,21 @@ function showMentionDropdown(ta) {
   if (!matches.length){closeMentionDropdown();return;}
   dd.innerHTML=matches.map((m,i)=>`<div class="mention-opt${i===0?' focused':''}" onmousedown="insertMention('${m.name}')"><div class="mention-avatar" style="background:${m.color}">${m.initials}</div><span>${m.name}</span></div>`).join('');
   const rect=ta.getBoundingClientRect();
-  dd.style.cssText=`left:${rect.left}px;width:${Math.min(220,rect.width)}px;display:block;`;
+  dd.style.cssText=''; // clear any previous inline styles
+  dd.style.left=rect.left+'px';
+  dd.style.width=Math.min(220,rect.width)+'px';
+  dd.style.top='0px'; // temp, positioned below in rAF
   dd.classList.add('open');
-  requestAnimationFrame(()=>{ dd.style.top=(rect.top-dd.offsetHeight-4)+'px'; });
+  requestAnimationFrame(()=>{
+    const ddH=dd.offsetHeight;
+    // Show above if not enough space below, else below
+    const spaceBelow=window.innerHeight-rect.bottom;
+    if(spaceBelow<ddH+8 && rect.top>ddH+8){
+      dd.style.top=(rect.top-ddH-4)+'px';
+    } else {
+      dd.style.top=(rect.bottom+4)+'px';
+    }
+  });
 }
 
 function insertMention(name) {
@@ -3040,7 +3141,13 @@ function insertMention(name) {
   ta.selectionStart=ta.selectionEnd=before.length+mention.length;
   ta.focus(); closeMentionDropdown();
 }
-function closeMentionDropdown(){mentionState.active=false;document.getElementById('mentionDropdown')?.classList.remove('open');}
+function closeMentionDropdown(){
+  mentionState.active=false;
+  const dd=document.getElementById('mentionDropdown');
+  if(!dd) return;
+  dd.classList.remove('open');
+  dd.style.display='none'; // clear inline style set by showMentionDropdown
+}
 
 function timeAgo(iso){
   const diff=Math.floor((new Date()-new Date(iso))/1000);
