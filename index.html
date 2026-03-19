@@ -3221,14 +3221,13 @@ function initBoardPan() {
   wrap.addEventListener('mouseup', stopPan);
   wrap.addEventListener('mouseleave', stopPan);
 
-  // Mouse wheel horizontal scroll (for mice without horizontal scroll)
+  // Shift+scroll = pan horizontally. Everything else = don't intercept.
   wrap.addEventListener('wheel', e => {
-    if (e.deltaX !== 0) return; // already has horizontal scroll, let it work
-    // Shift+scroll = horizontal, or just scroll on the board area
-    if (e.shiftKey || Math.abs(e.deltaY) > 0) {
+    if (e.shiftKey && Math.abs(e.deltaY) > 0) {
       e.preventDefault();
       wrap.scrollLeft += e.deltaY * 2;
     }
+    // Pure vertical scroll or native horizontal trackpad scroll — untouched
   }, { passive: false });
 }
 
