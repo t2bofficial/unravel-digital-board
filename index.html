@@ -135,7 +135,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .member-overflow-email{font-size:10.5px;color:var(--muted2);}
 
 /* BOARD */
-.board-wrap{padding:16px 24px 60px;overflow-x:auto;min-height:calc(100vh - 220px);position:relative;z-index:1;background:var(--bg);}
+.board-wrap{padding:16px 24px 16px;overflow-x:auto;height:calc(100vh - 160px);position:relative;z-index:1;background:var(--bg);cursor:default;}
+.board-wrap.panning{cursor:grabbing;user-select:none;}
 .board{display:flex;gap:12px;align-items:flex-start;min-width:max-content;}
 
 /* LOADING */
@@ -144,7 +145,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* COLUMN */
-.col{width:280px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;transition:box-shadow .2s;}
+.col{width:280px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;transition:box-shadow .2s;display:flex;flex-direction:column;max-height:calc(100vh - 200px);}
 .col.drag-over{box-shadow:0 0 0 2px var(--brand);outline:none;}
 .col-header{display:flex;align-items:center;justify-content:space-between;padding:11px 12px 9px;border-bottom:1px solid var(--border);}
 .col-title-wrap{display:flex;align-items:center;gap:7px;}
@@ -154,7 +155,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .col-actions{display:flex;gap:2px;}
 .col-btn{width:24px;height:24px;border-radius:6px;background:transparent;border:none;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s;font-family:inherit;}
 .col-btn:hover{background:var(--surface3);color:var(--text);}
-.col-body{padding:8px;min-height:50px;}
+.col-body{padding:8px;min-height:50px;overflow-y:auto;flex:1;}
+.col-body::-webkit-scrollbar{width:4px;}
+.col-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.col-body::-webkit-scrollbar-thumb:hover{background:var(--muted2);}
 
 /* CARD */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px 10px 14px;margin-bottom:6px;cursor:grab;transition:all .15s;position:relative;animation:cardIn .16s ease;box-shadow:var(--shadow);}
@@ -191,8 +195,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .card-assignee{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:#fff;flex-shrink:0;}
 
 /* ADD CARD / COL */
-.add-card-btn{width:100%;padding:8px;background:transparent;border:1px dashed var(--border2);border-radius:var(--r);color:var(--muted2);font-family:inherit;font-size:12px;cursor:pointer;transition:all .14s;display:flex;align-items:center;justify-content:center;gap:5px;margin-top:3px;}
-.add-card-btn:hover{color:var(--brand);border-color:var(--brand);background:var(--brand-light);}
+.add-card-btn{width:100%;padding:8px 10px;background:transparent;border:none;border-top:1px solid var(--border);color:var(--muted2);font-family:inherit;font-size:12px;cursor:pointer;transition:all .14s;display:flex;align-items:center;justify-content:center;gap:5px;flex-shrink:0;border-radius:0 0 var(--r-lg) var(--r-lg);}
+.add-card-btn:hover{color:var(--brand);background:var(--brand-light);}
 [data-theme="dark"] .add-card-btn:hover{color:#93c5fd;background:rgba(37,99,235,0.08);}
 .add-col{width:240px;flex-shrink:0;background:rgba(0,0,0,0.03);border:2px dashed var(--border2);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;gap:7px;padding:18px;cursor:pointer;color:var(--muted2);font-size:12px;font-weight:500;transition:all .14s;align-self:flex-start;min-height:70px;font-family:inherit;}
 .add-col:hover{color:var(--brand);border-color:var(--brand);background:var(--brand-light);}
@@ -1348,6 +1352,7 @@ function render() {
   renderStats();
   renderMembers();
   renderTagFilters();
+  initBoardPan();
 }
 
 function renderTabs() {
@@ -1440,11 +1445,12 @@ function renderBoard() {
     const body = colEl.querySelector('#cb-' + col.id);
     colCards.forEach(c => body.appendChild(buildCard(c, col)));
 
+    // Add card button is OUTSIDE col-body so it stays pinned at bottom
     const ab = document.createElement('button');
     ab.className = 'add-card-btn';
     ab.textContent = '＋ Add card';
     ab.onclick = () => openNewCard(col.id);
-    body.appendChild(ab);
+    colEl.appendChild(ab); // appended to col, not col-body
 
     board.appendChild(colEl);
   });
@@ -3167,6 +3173,63 @@ let _searchTimer = null;
 function debouncedSearch() {
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(renderBoard, 120);
+}
+
+
+// ═══════════════════════════════════════════════
+// BOARD HORIZONTAL PAN (click-drag on empty space)
+// ═══════════════════════════════════════════════
+function initBoardPan() {
+  const wrap = document.querySelector('.board-wrap');
+  if (!wrap || wrap._panSetup) return;
+  wrap._panSetup = true;
+
+  let isPanning = false;
+  let startX = 0;
+  let scrollLeft = 0;
+
+  wrap.addEventListener('mousedown', e => {
+    // Only pan on left-click on the board background — not on cards/buttons
+    const target = e.target;
+    const isBackground =
+      target === wrap ||
+      target.classList.contains('board') ||
+      target.classList.contains('board-wrap');
+
+    if (e.button !== 0 || !isBackground) return;
+
+    isPanning = true;
+    startX = e.pageX - wrap.offsetLeft;
+    scrollLeft = wrap.scrollLeft;
+    wrap.classList.add('panning');
+    e.preventDefault();
+  });
+
+  wrap.addEventListener('mousemove', e => {
+    if (!isPanning) return;
+    e.preventDefault();
+    const x = e.pageX - wrap.offsetLeft;
+    const walk = (x - startX) * 1.2; // 1.2x multiplier for speed
+    wrap.scrollLeft = scrollLeft - walk;
+  });
+
+  const stopPan = () => {
+    isPanning = false;
+    wrap.classList.remove('panning');
+  };
+
+  wrap.addEventListener('mouseup', stopPan);
+  wrap.addEventListener('mouseleave', stopPan);
+
+  // Mouse wheel horizontal scroll (for mice without horizontal scroll)
+  wrap.addEventListener('wheel', e => {
+    if (e.deltaX !== 0) return; // already has horizontal scroll, let it work
+    // Shift+scroll = horizontal, or just scroll on the board area
+    if (e.shiftKey || Math.abs(e.deltaY) > 0) {
+      e.preventDefault();
+      wrap.scrollLeft += e.deltaY * 2;
+    }
+  }, { passive: false });
 }
 
 // ── KEYBOARD ──
