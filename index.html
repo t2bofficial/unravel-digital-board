@@ -81,7 +81,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 /* HEADER */
 header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;box-shadow:0 1px 0 var(--border);}
 .logo{display:flex;align-items:center;gap:8px;flex-shrink:0;text-decoration:none;}
-.logo-mark{width:28px;height:28px;background:var(--brand);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-mark{width:28px;height:28px;background:#111;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .logo-mark svg{width:16px;height:16px;}
 .logo-name{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;letter-spacing:-.2px;color:var(--text);}
 .logo-sep{color:var(--border2);margin:0 2px;font-weight:300;}
@@ -288,7 +288,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 #authScreen::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,#dbeafe 0%,#f0fdf4 50%,#faf5ff 100%);opacity:.5;pointer-events:none;}
 [data-theme="dark"] #authScreen::before{background:linear-gradient(135deg,rgba(37,99,235,0.08) 0%,rgba(0,0,0,0) 60%);opacity:1;}
 .auth-split{display:flex;width:100%;position:relative;z-index:1;}
-.auth-left{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;background:var(--brand);position:relative;overflow:hidden;}
+.auth-left{flex:1;display:flex;align-items:center;justify-content:center;padding:40px;background:linear-gradient(135deg,#0a0a0a,#1a1a2e);position:relative;overflow:hidden;}
 .auth-left::before{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,0.07);top:-100px;right:-100px;}
 .auth-left::after{content:'';position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,0.05);bottom:-80px;left:-60px;}
 .auth-brand{position:relative;z-index:1;color:#fff;}
@@ -304,7 +304,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .auth-right{width:460px;display:flex;align-items:center;justify-content:center;padding:40px;background:var(--surface);}
 .auth-box{width:100%;max-width:380px;}
 .auth-logo{display:flex;align-items:center;gap:9px;margin-bottom:32px;}
-.auth-logo-mark{width:32px;height:32px;background:var(--brand);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.auth-logo-mark{width:32px;height:32px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;}
 .auth-logo-mark svg{width:18px;height:18px;}
 .auth-logo-name{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text);}
 .auth-tabs{display:flex;gap:0;background:var(--surface3);border-radius:var(--r);padding:3px;margin-bottom:24px;border:1px solid var(--border);}
@@ -2571,9 +2571,7 @@ function applyPalette(hex) {
   root.style.setProperty('--brand-dark', p.brandDark);
   root.style.setProperty('--brand-light', p.brandLight);
   root.style.setProperty('--glow', p.glow);
-  // Update auth left panel
-  const authLeft = document.querySelector('.auth-left');
-  if (authLeft) authLeft.style.background = p.brandDark;
+  // Auth left panel stays Unravel Digital brand (not theme-dependent)
   // Update preview bar
   const preview = document.getElementById('themePreview');
   if (preview) preview.style.background = `linear-gradient(90deg,${p.brand},${p.brandLight})`;
