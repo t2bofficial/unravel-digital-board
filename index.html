@@ -2061,14 +2061,25 @@ function handleImgFile(input) {
   const file = input.files[0];
   if (!file) return;
   if (file.size > 3 * 1024 * 1024) { toast('Image must be under 3MB', '✕'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    pendingCoverUrl = e.target.result; // base64
+
+  // Compress to ~200KB max via canvas
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const MAX = 800; // px max dimension
+    let w = img.width, h = img.height;
+    if (w > MAX || h > MAX) {
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else       { w = Math.round(w * MAX / h); h = MAX; }
+    }
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    pendingCoverUrl = canvas.toDataURL('image/jpeg', 0.7);
     document.getElementById('imgPreview').src = pendingCoverUrl;
     document.getElementById('imgPreviewWrap').style.display = 'block';
     document.getElementById('imgUploadArea').style.display = 'none';
   };
-  reader.readAsDataURL(file);
+  img.src = URL.createObjectURL(file);
 }
 
 function handleImgDrop(e) {
