@@ -916,12 +916,6 @@ const SUPABASE_KEY = 'sb_publishable_CN32lHpAMVdt5zAr3TyssA_lRLPPrCv';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── GLOBAL ERROR HANDLER ──
-window.addEventListener('unhandledrejection', e => {
-  console.error('Unhandled:', e.reason);
-  toast('Something went wrong — try refreshing', '⚠');
-});
-
 // ── CONSTANTS ──
 const SYSTEM_TAGS = [
   {key:'complete',  label:'Complete',      cls:'tag-complete'},
@@ -952,13 +946,6 @@ const AVATAR_COLORS = [
 function getInitials(name) {
   if (!name) return '??';
   return name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
-}
-
-function esc(str) {
-  if (!str) return '';
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
 }
 
 function capitalizeName(name) {
@@ -1126,9 +1113,10 @@ async function loadAndStart() {
       '<div class="stat" style="opacity:.4">Loading…</div>';
 
     // Fire ALL initial queries in parallel — not sequential
-    sb.from('projects').select('*').order('created_at'),
+    const [projRes, colRes, cardRes, memberRes] = await Promise.all([
+      sb.from('projects').select('*').order('created_at'),
       sb.from('columns').select('*').order('position'),
-      sb.from('cards').select('id,column_id,project_id,title,description,priority,labels,assignee,due_date,position,is_archived,comment_count,cover_url').eq('is_archived', false).order('position'),
+      sb.from('cards').select('id,column_id,project_id,title,description,priority,labels,assignee,due_date,position,is_archived,comment_count,cover_url,created_by,created_at,updated_at').eq('is_archived', false).order('position'),
       sb.from('profiles').select('*').order('created_at'),
     ]);
 
@@ -2066,25 +2054,14 @@ function handleImgFile(input) {
   const file = input.files[0];
   if (!file) return;
   if (file.size > 3 * 1024 * 1024) { toast('Image must be under 3MB', '✕'); return; }
-
-  // Compress to ~200KB max via canvas
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    const MAX = 800; // px max dimension
-    let w = img.width, h = img.height;
-    if (w > MAX || h > MAX) {
-      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-      else       { w = Math.round(w * MAX / h); h = MAX; }
-    }
-    canvas.width = w; canvas.height = h;
-    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-    pendingCoverUrl = canvas.toDataURL('image/jpeg', 0.7);
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingCoverUrl = e.target.result; // base64
     document.getElementById('imgPreview').src = pendingCoverUrl;
     document.getElementById('imgPreviewWrap').style.display = 'block';
     document.getElementById('imgUploadArea').style.display = 'none';
   };
-  img.src = URL.createObjectURL(file);
+  reader.readAsDataURL(file);
 }
 
 function handleImgDrop(e) {
