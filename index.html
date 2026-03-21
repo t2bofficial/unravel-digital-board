@@ -916,6 +916,12 @@ const SUPABASE_KEY = 'sb_publishable_CN32lHpAMVdt5zAr3TyssA_lRLPPrCv';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ── GLOBAL ERROR HANDLER ──
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unhandled:', e.reason);
+  toast('Something went wrong — try refreshing', '⚠');
+});
+
 // ── CONSTANTS ──
 const SYSTEM_TAGS = [
   {key:'complete',  label:'Complete',      cls:'tag-complete'},
