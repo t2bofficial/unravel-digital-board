@@ -902,6 +902,25 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 
 <div id="toast-container"></div>
 
+<!-- GENERIC PROMPT/CONFIRM MODAL -->
+<div class="modal-overlay" id="promptModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="promptTitle">Confirm</div>
+      <button class="modal-close" onclick="resolvePromptModal(null)">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="promptMessage" style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.5;"></div>
+      <input class="field-input" id="promptInput" placeholder="" style="display:none;"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();resolvePromptModal(this.value.trim()||null);}" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="resolvePromptModal(null)" id="promptCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="promptOkBtn" onclick="resolvePromptModal(document.getElementById('promptInput').value.trim()||true)">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════
 // ▶  PASTE YOUR KEYS HERE
@@ -915,6 +934,12 @@ const SUPABASE_KEY = 'sb_publishable_CN32lHpAMVdt5zAr3TyssA_lRLPPrCv';
 // ═══════════════════════════════════════════════
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── GLOBAL ERROR HANDLER ──
+window.addEventListener('unhandledrejection', e => {
+  console.error('Unhandled:', e.reason);
+  toast('Something went wrong — try refreshing', '⚠');
+});
 
 // ── CONSTANTS ──
 const SYSTEM_TAGS = [
@@ -946,6 +971,13 @@ const AVATAR_COLORS = [
 function getInitials(name) {
   if (!name) return '??';
   return name.trim().split(/\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
+}
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
 }
 
 function capitalizeName(name) {
@@ -1117,7 +1149,7 @@ async function loadAndStart() {
       sb.from('projects').select('*').order('created_at'),
       sb.from('columns').select('*').order('position'),
       sb.from('cards').select('id,column_id,project_id,title,description,priority,labels,assignee,due_date,position,is_archived,comment_count,cover_url,created_by,created_at,updated_at').eq('is_archived', false).order('position'),
-      sb.from('profiles').select('*').order('created_at'),
+      sb.from('profiles').select('id,full_name,email,email_confirmed').order('created_at'),
     ]);
 
     if (projRes.error) throw projRes.error;
@@ -1374,7 +1406,7 @@ function renderTabs() {
 async function renameProject(projectId) {
   const proj = projects.find(p => p.id === projectId);
   if (!proj) return;
-  const newName = prompt('Rename project:', proj.name)?.trim();
+  const newName = await showModal({title:'Rename Project', message:'Enter a new name:', placeholder:proj.name, defaultValue:proj.name});
   if (!newName || newName === proj.name) return;
 
   proj.name = newName;
@@ -1505,8 +1537,8 @@ function buildCard(card, col) {
   el.innerHTML = `
     ${thumbHtml}
     ${tagHtml ? `<div class="card-tags">${tagHtml}</div>` : ''}
-    <div class="card-title">${card.title}</div>
-    ${card.description ? `<div class="card-desc">${card.description}</div>` : ''}
+    <div class="card-title">${esc(card.title)}</div>
+    ${card.description ? `<div class="card-desc">${esc(card.description)}</div>` : ''}
     <div class="card-footer">
       <div class="card-meta">
         <span style="width:5px;height:5px;border-radius:50%;background:${pd};flex-shrink:0;display:inline-block;"></span>
@@ -1640,10 +1672,18 @@ function getAllTags() {
 }
 
 function getCustomTags() {
-  try { return JSON.parse(localStorage.getItem('unravel-ctags-'+currentProjectId)||'[]'); } catch(e) { return []; }
+  const proj = projects.find(p => p.id === currentProjectId);
+  return proj?.custom_tags || [];
 }
-function saveCustomTags(tags) {
-  localStorage.setItem('unravel-ctags-'+currentProjectId, JSON.stringify(tags));
+
+async function saveCustomTags(tags) {
+  const proj = projects.find(p => p.id === currentProjectId);
+  if (proj) proj.custom_tags = tags;
+  if (isConnected) {
+    await sb.from('projects').update({ custom_tags: tags }).eq('id', currentProjectId);
+  } else {
+    saveFallback();
+  }
 }
 
 // ── DRAG & DROP ──
@@ -1824,7 +1864,7 @@ function toggleTagSel(key, el) {
   else { selTags.add(key); el.classList.add('sel'); }
 }
 
-function addCustomTag() {
+async function addCustomTag() {
   const input = document.getElementById('customTagInput');
   const label = input.value.trim();
   if (!label) return;
@@ -1832,7 +1872,7 @@ function addCustomTag() {
   const existing = getCustomTags();
   if (!existing.find(t => t.key === key)) {
     existing.push({key, label});
-    saveCustomTags(existing);
+    await saveCustomTags(existing);
   }
   selTags.add(key);
   input.value = '';
@@ -1999,7 +2039,8 @@ async function saveCard() {
 async function deleteCard() {
   if (!editingCardId) return;
   const card = cards.find(c=>c.id===editingCardId);
-  if (!confirm(`Delete "${card?.title}"? This cannot be undone.`)) return;
+  const ok4 = await showModal({title:'Delete Card', message:`Delete "${card?.title}"? This cannot be undone.`, isConfirm:true, danger:true});
+  if (!ok4) return;
 
   const cardId = editingCardId;
 
@@ -2035,9 +2076,9 @@ async function deleteCard() {
 }
 
 // ── DELETE TAG ──
-function deleteTag(key) {
+async function deleteTag(key) {
   const existing = getCustomTags().filter(t => t.key !== key);
-  saveCustomTags(existing);
+  await saveCustomTags(existing);
   selTags.delete(key);
   // Remove from all cards in current project locally
   cards.forEach(c => {
@@ -2054,14 +2095,23 @@ function handleImgFile(input) {
   const file = input.files[0];
   if (!file) return;
   if (file.size > 3 * 1024 * 1024) { toast('Image must be under 3MB', '✕'); return; }
-  const reader = new FileReader();
-  reader.onload = e => {
-    pendingCoverUrl = e.target.result; // base64
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const MAX = 600;
+    let w = img.width, h = img.height;
+    if (w > MAX || h > MAX) {
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else       { w = Math.round(w * MAX / h); h = MAX; }
+    }
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    pendingCoverUrl = canvas.toDataURL('image/jpeg', 0.5);
     document.getElementById('imgPreview').src = pendingCoverUrl;
     document.getElementById('imgPreviewWrap').style.display = 'block';
     document.getElementById('imgUploadArea').style.display = 'none';
   };
-  reader.readAsDataURL(file);
+  img.src = URL.createObjectURL(file);
 }
 
 function handleImgDrop(e) {
@@ -2094,7 +2144,7 @@ async function loadComments(cardId) {
   cardComments = [];
   if (!isConnected) { document.getElementById('commentList').innerHTML = ''; return; }
   const {data, error} = await sb.from('activity')
-    .select('*').eq('card_id', cardId).eq('action', 'comment').order('created_at', {ascending:true});
+    .select('id,card_id,user_id,action,meta,created_at').eq('card_id', cardId).eq('action', 'comment').order('created_at', {ascending:true});
   if (error) { document.getElementById('commentList').innerHTML = ''; return; }
   cardComments = data || [];
   renderComments();
@@ -2114,8 +2164,8 @@ function renderComments() {
     return `<div class="comment-item" data-id="${c.id}">
       <div class="comment-avatar">${initials}</div>
       <div class="comment-body">
-        <div class="comment-meta"><strong>${name}</strong> · ${time}${isOwn?`<button class="comment-del" onclick="deleteComment('${c.id}')" title="Delete">✕</button>`:''}</div>
-        <div class="comment-text">${(meta.text||'').replace(/@(\w+)/g,'<span class=\"notif-mention\">@$1</span>').replace(/\n/g,'<br>')}</div>
+        <div class="comment-meta"><strong>${esc(name)}</strong> · ${time}${isOwn?`<button class="comment-del" onclick="deleteComment('${c.id}')" title="Delete">✕</button>`:''}</div>
+        <div class="comment-text">${esc(meta.text||'').replace(/@(\w+)/g,'<span class=\"notif-mention\">@$1</span>').replace(/\n/g,'<br>')}</div>
       </div>
     </div>`;
   }).join('');
@@ -2167,7 +2217,8 @@ async function postComment() {
 }
 
 async function deleteComment(commentId) {
-  if (!confirm('Delete this comment?')) return;
+  const ok0 = await showModal({title:'Delete Comment', message:'Delete this comment?', isConfirm:true, danger:true});
+  if (!ok0) return;
   if (isConnected) {
     await sb.from('activity').delete().eq('id', commentId);
     const card = cards.find(c=>c.id===editingCardId);
@@ -2199,7 +2250,7 @@ async function switchProject(id, name) {
 }
 
 async function addProject() {
-  const name = prompt('Project name:')?.trim();
+  const name = await showModal({title:'New Project', message:'Enter the project name:', placeholder:'Project name'});
   if (!name) return;
   const slug = name.toLowerCase().replace(/\s+/g,'-') + '-' + Date.now().toString(36);
 
@@ -2232,7 +2283,7 @@ async function addProject() {
 
 // ── COLUMNS ──
 async function addColumn() {
-  const title = prompt('Column name:')?.trim();
+  const title = await showModal({title:'New Column', message:'Enter the column name:', placeholder:'Column name'});
   if (!title) return;
   const pal = ['#4f6ef7','#f59e0b','#8b5cf6','#10b981','#ef4444','#06b6d4','#f97316'];
   const color = pal[Math.floor(Math.random()*pal.length)];
@@ -2287,7 +2338,8 @@ async function saveColChanges() {
 async function deleteCol() {
   const col = columns.find(c => c.id === editingColId);
   if (!col) return;
-  if (!confirm(`Delete "${col.title}" and all its cards? This cannot be undone.`)) return;
+  const ok1 = await showModal({title:'Delete Column', message:`Delete "${col.title}" and all its cards? This cannot be undone.`, isConfirm:true, danger:true});
+  if (!ok1) return;
   if (isConnected) {
     await sb.from('cards').delete().eq('column_id', editingColId);
     await sb.from('columns').delete().eq('id', editingColId);
@@ -2321,6 +2373,39 @@ function toast(msg, icon='ℹ') {
 }
 
 
+// ── MODAL PROMPT / CONFIRM ──
+let _promptResolve = null;
+
+function showModal({title, message, placeholder, defaultValue, isConfirm, danger}) {
+  return new Promise(resolve => {
+    _promptResolve = resolve;
+    document.getElementById('promptTitle').textContent = title || 'Confirm';
+    document.getElementById('promptMessage').textContent = message || '';
+    const input = document.getElementById('promptInput');
+    const okBtn = document.getElementById('promptOkBtn');
+    if (isConfirm) {
+      input.style.display = 'none';
+      okBtn.textContent = danger ? 'Delete' : 'OK';
+      okBtn.style.background = danger ? 'var(--danger)' : '';
+      okBtn.onclick = () => resolvePromptModal(true);
+    } else {
+      input.style.display = 'block';
+      input.placeholder = placeholder || '';
+      input.value = defaultValue || '';
+      okBtn.textContent = 'OK';
+      okBtn.style.background = '';
+      okBtn.onclick = () => resolvePromptModal(input.value.trim() || null);
+    }
+    document.getElementById('promptModal').classList.add('open');
+    setTimeout(() => { if (!isConfirm) input.focus(); }, 120);
+  });
+}
+
+function resolvePromptModal(value) {
+  document.getElementById('promptModal').classList.remove('open');
+  if (_promptResolve) { _promptResolve(value); _promptResolve = null; }
+}
+
 // ── LIGHTBOX ──
 function openLightbox(src, filename) {
   document.getElementById('lightboxImg').src = src;
@@ -2348,7 +2433,8 @@ function lbClickBg(e) {
 
 async function lbRemoveCover() {
   if (!editingCardId) { closeLightbox(); return; }
-  if (!confirm('Remove cover image from this card?')) return;
+  const ok2 = await showModal({title:'Remove Cover', message:'Remove cover image from this card?', isConfirm:true});
+  if (!ok2) return;
   if (isConnected) {
     await sb.from('cards').update({cover_url: null}).eq('id', editingCardId);
     const local = cards.find(c=>c.id===editingCardId);
@@ -2389,7 +2475,7 @@ async function loadTeamMembers() {
     // Since we don't have a profiles table yet, we'll use the auth.users view
     // Supabase exposes this via the admin API — for client-side, use a profiles approach
     // WORKAROUND: store user profiles in a public 'profiles' table on sign-up
-    const {data, error} = await sb.from('profiles').select('*').order('created_at');
+    const {data, error} = await sb.from('profiles').select('id,full_name,email,email_confirmed').order('created_at');
 
     if (error || !data || data.length === 0) {
       // Fall back to just showing current user
@@ -2631,7 +2717,7 @@ async function loadActivity(cardId) {
   }
   log.innerHTML = '<div style="color:var(--muted);font-size:12px;">Loading…</div>';
   const {data, error} = await sb.from('activity')
-    .select('*').eq('card_id', cardId)
+    .select('id,card_id,user_id,action,meta,created_at').eq('card_id', cardId)
     .order('created_at', {ascending: false})
     .limit(50);
   if (error || !data?.length) {
@@ -2651,7 +2737,7 @@ async function loadActivity(cardId) {
     return `<div class="activity-item">
       <div class="activity-icon ${act.cls}">${act.icon}</div>
       <div class="activity-body">
-        <div class="activity-text"><strong>${name}</strong> ${act.label(meta)}</div>
+        <div class="activity-text"><strong>${esc(name)}</strong> ${act.label(meta)}</div>
         ${commentPreview}
         <div class="activity-time">${time}</div>
       </div>
@@ -2937,7 +3023,8 @@ async function deleteProject(projectId, projectName) {
     toast('Cannot delete the last project', '✕');
     return;
   }
-  if (!confirm(`Delete project "${projectName}" and ALL its cards? This cannot be undone.`)) return;
+  const ok3 = await showModal({title:'Delete Project', message:`Delete project "${projectName}" and ALL its cards? This cannot be undone.`, isConfirm:true, danger:true});
+  if (!ok3) return;
 
   // Switch to another project first
   const other = projects.find(p => p.id !== projectId);
@@ -2992,7 +3079,8 @@ async function loadNotifications() {
   if (!isConnected || !currentUser) return;
   try {
     const {data} = await sb.from('notifications')
-      .select('*').eq('to_user_id', currentUser.id)
+      .select('id,to_user_id,from_user_id,type,card_id,project_id,is_read,meta,created_at').eq('to_user_id', currentUser.id)
+      .eq('is_read', false)
       .order('created_at', {ascending:false}).limit(30);
     notifications = data || [];
     unreadCount = notifications.filter(n=>!n.is_read).length;
@@ -3041,13 +3129,13 @@ function renderNotifications() {
     const icon = n.type==='mention'?'💬':'📋';
     const cls  = n.type==='mention'?'mention':'assign';
     const msg  = n.type==='mention'
-      ? `<strong>${meta.from_name||'Someone'}</strong> mentioned you in a comment`
-      : `<strong>${meta.from_name||'Someone'}</strong> assigned you to a card`;
+      ? `<strong>${esc(meta.from_name||'Someone')}</strong> mentioned you in a comment`
+      : `<strong>${esc(meta.from_name||'Someone')}</strong> assigned you to a card`;
     return `<div class="notif-item${n.is_read?'':' unread'}" onclick="onNotifClick('${n.id}','${n.card_id||''}')">
       <div class="notif-icon ${cls}">${icon}</div>
       <div class="notif-body">
         <div class="notif-text">${msg}</div>
-        ${meta.card_title?`<div class="notif-card-title">📋 ${meta.card_title}</div>`:''}
+        ${meta.card_title?`<div class="notif-card-title">📋 ${esc(meta.card_title)}</div>`:''}
         <div class="notif-time">${time}</div>
       </div>
     </div>`;
