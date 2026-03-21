@@ -1125,12 +1125,17 @@ async function loadAndStart() {
     document.getElementById('statsBar').innerHTML =
       '<div class="stat" style="opacity:.4">Loading…</div>';
 
-    // Fire ALL initial queries in parallel — not sequential
-    const [projRes, colRes, cardRes, memberRes] = await Promise.all([
-      sb.from('projects').select('*').order('created_at'),
-      sb.from('columns').select('*').order('position'),
-      sb.from('cards').select('id,column_id,project_id,title,description,priority,labels,assignee,due_date,position,is_archived,comment_count,cover_url').eq('is_archived', false).order('position'),
-      sb.from('profiles').select('*').order('created_at'),
+    // Cards list (don't need full description on board view)
+   sb.from('cards').select('id,column_id,project_id,title,priority,labels,assignee,due_date,position,is_archived,cover_url,comment_count,created_by,created_at')
+
+   // Activity feed (don't need card_id if you already have it)
+   sb.from('activity').select('id,action,meta,user_id,created_at')
+
+   // Projects list
+   sb.from('projects').select('id,name,slug,description,owner_id,custom_tags')
+
+   // Profiles (never need created_at on the board)
+   sb.from('profiles').select('id,full_name,email')
     ]);
 
     if (projRes.error) throw projRes.error;
