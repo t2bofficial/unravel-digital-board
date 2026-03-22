@@ -1,9 +1,11 @@
 {
   "version": 2,
   "builds": [
+    { "src": "api/*.js", "use": "@vercel/node" },
     { "src": "**/*", "use": "@vercel/static" }
   ],
   "routes": [
+    { "src": "/install-ios", "dest": "/api/ios.js" },
     { "src": "/(.*\\.(png|ico|jpg|jpeg|svg|gif|webp|css|js|json|mobileconfig))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
