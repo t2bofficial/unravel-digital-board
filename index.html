@@ -644,14 +644,36 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   }
   .detail-modal{max-width:100%;max-height:93vh;}
   .modal-header{padding:14px 14px 11px;}
-  .modal-body{padding:12px 14px;}
+  .modal-body{padding:12px 14px;overflow-x:hidden;}
   .modal-footer{padding:10px 14px;}
 
-  /* Card detail: single-column layout */
-  .detail-two-col{grid-template-columns:1fr;gap:14px;}
-  /* Side actions float to top in 2-per-row grid */
-  .detail-side{order:-1;display:flex;flex-wrap:wrap;gap:5px;}
-  .detail-side .side-action-btn{flex:1 1 calc(50% - 3px);margin-bottom:0;font-size:11px;}
+  /* Card detail: sidebar stacks above main content */
+  .detail-two-col{grid-template-columns:1fr;gap:0;}
+
+  /* Sidebar: 2-column grid — Column|Assignee / DueDate|Priority */
+  .detail-side{
+    order:-1;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:12px;
+  }
+  /* Tags, Cover Image, Delete button wrapper — span full width */
+  .detail-side > *:nth-child(n+5){grid-column:1/-1;}
+
+  /* Tag picker: wraps cleanly within container */
+  .detail-side .tag-picker{display:flex;flex-wrap:wrap;gap:4px;}
+
+  /* Delete Card button: full width */
+  .detail-side .side-action-btn{width:100%;margin-bottom:0;font-size:11px;}
+
+  /* Description textarea: shorter on mobile */
+  #cDesc{min-height:120px!important;}
+
+  /* Comment hint: hide ⌘ shortcut on mobile */
+  #panelComments > div:last-child{display:none;}
 
   /* Form grids: single col */
   .grid-2{grid-template-columns:1fr;}
