@@ -365,11 +365,12 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .comment-send:disabled{opacity:.4;cursor:not-allowed;}
 
 /* IMAGE UPLOAD */
-.img-upload-area{border:2px dashed var(--border2);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .15s;position:relative;}
+.img-upload-area{border:2px dashed var(--border2);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .15s;position:relative;display:block;}
 .img-upload-area:hover,.img-upload-area.drag-on{border-color:var(--accent);background:rgba(79,110,247,0.04);}
-.img-upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.img-upload-icon{font-size:22px;margin-bottom:6px;}
-.img-upload-text{font-size:12px;color:var(--muted2);}
+/* Hidden file input — label wrapper handles the tap/click */
+.img-upload-area input[type="file"]{display:none;}
+.img-upload-icon{font-size:22px;margin-bottom:6px;pointer-events:none;}
+.img-upload-text{font-size:12px;color:var(--muted2);pointer-events:none;}
 .img-preview-wrap{position:relative;margin-top:10px;}
 .img-preview{width:100%;border-radius:var(--r);display:block;max-height:200px;object-fit:cover;}
 .img-remove{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .12s;}
@@ -703,6 +704,43 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   #lightboxImg{max-width:96vw;max-height:66vh;}
   .lb-bar{flex-direction:column;align-items:flex-start;gap:8px;}
   .lb-actions{width:100%;justify-content:flex-end;}
+
+  /* ── Thumbnail overlap fix: move remove btn to bottom-right to avoid header × ── */
+  #thumbRemoveBtn{top:auto!important;bottom:8px!important;right:8px!important;z-index:20;}
+
+  /* ── Cover upload area: mobile-friendly ── */
+  .img-upload-area{padding:12px 10px;}
+  .img-upload-icon{display:none;}
+  .img-upload-text{font-size:12px;}
+
+  /* ── Comment row: hide avatar to free up horizontal space ── */
+  .comment-item .comment-avatar{display:none;}
+  .comment-input-row .comment-avatar{display:none;}
+  .comment-textarea{font-size:13px;}
+  .comment-send{padding:8px 12px;font-size:12px;flex-shrink:0;}
+
+  /* ── Comment text: break long URLs ── */
+  .comment-text{word-break:break-word;overflow-wrap:anywhere;}
+
+  /* ── Mention dropdown: constrained on mobile ── */
+  .mention-dropdown{max-width:calc(100vw - 16px)!important;}
+  .mention-opt{padding:10px 12px;} /* bigger tap targets */
+
+  /* ── Due date input: shrink font so it fits ── */
+  #cDue{font-size:11px;}
+
+  /* ── Tag delete: always show on mobile (no hover) ── */
+  .tag .tag-del{opacity:1;}
+
+  /* ── Modal footer: safe area + dynamic viewport height ── */
+  .modal-footer{padding-bottom:max(10px,env(safe-area-inset-bottom,10px));}
+  .modal{max-height:93dvh;} /* dynamic viewport — shrinks when keyboard opens */
+
+  /* ── Field labels (section titles) in sidebar: smaller ── */
+  .detail-side .detail-section-title{font-size:9px;margin-bottom:4px;}
+
+  /* ── iOS safe area inset for bottom elements ── */
+  #toast-container{bottom:max(16px,env(safe-area-inset-bottom,16px));}
 }
 
 /* ── VERY SMALL (≤ 390px) ── */
@@ -972,14 +1010,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
               Cover Image
             </div>
-            <div class="img-upload-area" id="imgUploadArea"
+            <label class="img-upload-area" id="imgUploadArea" for="coverFileInput"
               ondragover="event.preventDefault();this.classList.add('drag-on')"
               ondragleave="this.classList.remove('drag-on')"
               ondrop="handleImgDrop(event)">
-              <input type="file" accept="image/*" onchange="handleImgFile(this)" />
+              <input type="file" id="coverFileInput" accept="image/*" onchange="handleImgFile(this)" />
               <div class="img-upload-icon">🖼</div>
-              <div class="img-upload-text">Click or drag an image<br><span style="font-size:10.5px;color:var(--muted);">Shows as thumbnail on card</span></div>
-            </div>
+              <div class="img-upload-text">Tap or drag to upload<br><span style="font-size:10.5px;color:var(--muted);">Shows as thumbnail on card</span></div>
+            </label>
             <div class="img-preview-wrap" id="imgPreviewWrap" style="display:none;">
               <img class="img-preview" id="imgPreview" src="" alt="preview" />
               <button class="img-remove" onclick="clearImgPreview()">✕</button>
@@ -3360,14 +3398,19 @@ function showMentionDropdown(ta) {
   if (!matches.length){closeMentionDropdown();return;}
   dd.innerHTML=matches.map((m,i)=>`<div class="mention-opt${i===0?' focused':''}" onmousedown="insertMention('${m.name}')"><div class="mention-avatar" style="background:${m.color}">${m.initials}</div><span>${m.name}</span></div>`).join('');
   const rect=ta.getBoundingClientRect();
-  dd.style.cssText=''; // clear any previous inline styles
-  dd.style.left=rect.left+'px';
-  dd.style.width=Math.min(220,rect.width)+'px';
-  dd.style.top='0px'; // temp, positioned below in rAF
+  const vw=window.innerWidth;
+  // Constrain dropdown width so it never exceeds the viewport
+  const dropW=Math.min(280,vw-16);
+  // Clamp left so it stays fully on-screen
+  let left=Math.min(rect.left, vw-dropW-8);
+  left=Math.max(8,left);
+  dd.style.cssText='';
+  dd.style.width=dropW+'px';
+  dd.style.left=left+'px';
+  dd.style.top='0px';
   dd.classList.add('open');
   requestAnimationFrame(()=>{
     const ddH=dd.offsetHeight;
-    // Show above if not enough space below, else below
     const spaceBelow=window.innerHeight-rect.bottom;
     if(spaceBelow<ddH+8 && rect.top>ddH+8){
       dd.style.top=(rect.top-ddH-4)+'px';
