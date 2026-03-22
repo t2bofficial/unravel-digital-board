@@ -667,8 +667,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   .detail-side .field-select,
   .detail-side .field-input{min-width:0;width:100%;box-sizing:border-box;}
 
-  /* Tags, Cover Image, Delete button wrapper — span full width */
-  .detail-side > *:nth-child(n+5){grid-column:1/-1;}
+  /* DueDate, Priority, Tags, Cover, Delete — all full-width from 3rd child on.
+     Only Column + Assignee stay side-by-side (the date text is too long for half-width). */
+  .detail-side > *:nth-child(n+3){grid-column:1/-1;}
 
   /* Tag picker: wrap within container, no overflow */
   .detail-side .tag-picker{display:flex;flex-wrap:wrap;gap:4px;overflow:hidden;}
@@ -742,6 +743,25 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   /* ── iOS safe area inset for bottom elements ── */
   #toast-container{bottom:max(16px,env(safe-area-inset-bottom,16px));}
 }
+
+/* ── MENTION BOTTOM SHEET (mobile) ── */
+.mention-sheet-overlay{display:none;position:fixed;inset:0;z-index:1999;background:rgba(0,0,0,0.35);backdrop-filter:blur(2px);}
+.mention-sheet{
+  position:fixed;bottom:-100%;left:0;right:0;z-index:2000;
+  background:var(--surface);border-radius:16px 16px 0 0;
+  box-shadow:0 -6px 32px rgba(0,0,0,0.18);
+  transition:bottom .25s cubic-bezier(.32,0,.67,0);
+  max-height:55vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0);
+  display:none;
+}
+.mention-sheet.open{bottom:0;}
+.mention-sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 8px;}
+.mention-sheet-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);padding:0 16px 10px;}
+.mention-sheet-list{padding:0 8px 12px;}
+.mention-sheet-opt{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:var(--r);cursor:pointer;transition:background .1s;}
+.mention-sheet-opt:hover,.mention-sheet-opt:active{background:var(--surface2);}
+.mention-sheet-opt-name{font-size:13.5px;font-weight:500;color:var(--text);}
+.mention-sheet-opt-email{font-size:11px;color:var(--muted2);margin-top:1px;}
 
 /* ── VERY SMALL (≤ 390px) ── */
 @media (max-width:390px){
@@ -3393,16 +3413,21 @@ function onCommentKeydown(e) {
 }
 
 function showMentionDropdown(ta) {
-  const matches=TEAM_MEMBERS.filter(m=>m.name.toLowerCase().includes(mentionState.query)||(m.email||'').split('@')[0].toLowerCase().includes(mentionState.query)).slice(0,6);
-  const dd=document.getElementById('mentionDropdown');
+  const matches=TEAM_MEMBERS.filter(m=>m.name.toLowerCase().includes(mentionState.query)||(m.email||'').split('@')[0].toLowerCase().includes(mentionState.query)).slice(0,8);
   if (!matches.length){closeMentionDropdown();return;}
+
+  // Mobile → bottom sheet; desktop → floating dropdown
+  if (window.innerWidth<=640) {
+    showMentionSheet(matches);
+    return;
+  }
+
+  const dd=document.getElementById('mentionDropdown');
   dd.innerHTML=matches.map((m,i)=>`<div class="mention-opt${i===0?' focused':''}" onmousedown="insertMention('${m.name}')"><div class="mention-avatar" style="background:${m.color}">${m.initials}</div><span>${m.name}</span></div>`).join('');
   const rect=ta.getBoundingClientRect();
   const vw=window.innerWidth;
-  // Constrain dropdown width so it never exceeds the viewport
   const dropW=Math.min(280,vw-16);
-  // Clamp left so it stays fully on-screen
-  let left=Math.min(rect.left, vw-dropW-8);
+  let left=Math.min(rect.left,vw-dropW-8);
   left=Math.max(8,left);
   dd.style.cssText='';
   dd.style.width=dropW+'px';
@@ -3412,12 +3437,23 @@ function showMentionDropdown(ta) {
   requestAnimationFrame(()=>{
     const ddH=dd.offsetHeight;
     const spaceBelow=window.innerHeight-rect.bottom;
-    if(spaceBelow<ddH+8 && rect.top>ddH+8){
-      dd.style.top=(rect.top-ddH-4)+'px';
-    } else {
-      dd.style.top=(rect.bottom+4)+'px';
-    }
+    if(spaceBelow<ddH+8&&rect.top>ddH+8){dd.style.top=(rect.top-ddH-4)+'px';}
+    else{dd.style.top=(rect.bottom+4)+'px';}
   });
+}
+
+function showMentionSheet(matches) {
+  const list=document.getElementById('mentionSheetList');
+  const sheet=document.getElementById('mentionSheet');
+  const overlay=document.getElementById('mentionSheetOverlay');
+  list.innerHTML=matches.map(m=>`
+    <div class="mention-sheet-opt" onmousedown="insertMention('${m.name}')">
+      <div class="mention-avatar" style="background:${m.color};width:36px;height:36px;font-size:12px;flex-shrink:0;">${m.initials}</div>
+      <div><div class="mention-sheet-opt-name">${m.name}</div>${m.email?`<div class="mention-sheet-opt-email">${m.email}</div>`:''}</div>
+    </div>`).join('');
+  overlay.style.display='block';
+  sheet.style.display='block';
+  requestAnimationFrame(()=>sheet.classList.add('open'));
 }
 
 function insertMention(name) {
@@ -3432,10 +3468,17 @@ function insertMention(name) {
 }
 function closeMentionDropdown(){
   mentionState.active=false;
+  // Close floating dropdown (desktop)
   const dd=document.getElementById('mentionDropdown');
-  if(!dd) return;
-  dd.classList.remove('open');
-  dd.style.display='none'; // clear inline style set by showMentionDropdown
+  if(dd){dd.classList.remove('open');dd.style.display='';}
+  // Close bottom sheet (mobile)
+  const sheet=document.getElementById('mentionSheet');
+  const overlay=document.getElementById('mentionSheetOverlay');
+  if(sheet){
+    sheet.classList.remove('open');
+    setTimeout(()=>{sheet.style.display='none';},260);
+  }
+  if(overlay){overlay.style.display='none';}
 }
 
 function timeAgo(iso){
@@ -3616,8 +3659,16 @@ init();
     <div class="notif-empty"><span class="notif-empty-icon">🔕</span>No notifications yet</div>
   </div>
 </div>
-<!-- MENTION DROPDOWN -->
+<!-- MENTION DROPDOWN (desktop) -->
 <div class="mention-dropdown" id="mentionDropdown"></div>
+
+<!-- MENTION BOTTOM SHEET (mobile) -->
+<div class="mention-sheet-overlay" id="mentionSheetOverlay" onclick="closeMentionDropdown()"></div>
+<div class="mention-sheet" id="mentionSheet">
+  <div class="mention-sheet-handle"></div>
+  <div class="mention-sheet-title">Mention a member</div>
+  <div class="mention-sheet-list" id="mentionSheetList"></div>
+</div>
 
 </div><!-- /appScreen -->
 </body>
