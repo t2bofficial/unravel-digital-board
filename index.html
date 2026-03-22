@@ -667,9 +667,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   .detail-side .field-select,
   .detail-side .field-input{min-width:0;width:100%;box-sizing:border-box;}
 
-  /* DueDate, Priority, Tags, Cover, Delete — all full-width from 3rd child on.
-     Only Column + Assignee stay side-by-side (the date text is too long for half-width). */
-  .detail-side > *:nth-child(n+3){grid-column:1/-1;}
+  /* Tags, Cover, Delete — full-width from 5th child on.
+     Column|Assignee and DueDate|Priority each share a row at half-width. */
+  .detail-side > *:nth-child(n+5){grid-column:1/-1;}
 
   /* Tag picker: wrap within container, no overflow */
   .detail-side .tag-picker{display:flex;flex-wrap:wrap;gap:4px;overflow:hidden;}
@@ -727,8 +727,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   .mention-dropdown{max-width:calc(100vw - 16px)!important;}
   .mention-opt{padding:10px 12px;} /* bigger tap targets */
 
-  /* ── Due date: compact font + tight padding so the long date string fits ── */
-  #cDue{font-size:11px;padding:6px 8px;letter-spacing:-.2px;}
+  /* ── Due date: compact font + tight padding so the date fits at half-width ── */
+  #cDue{font-size:10px;padding:6px 6px;letter-spacing:-.3px;}
 
   /* ── Tag delete: always show on mobile (no hover) ── */
   .tag .tag-del{opacity:1;}
