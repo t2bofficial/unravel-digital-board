@@ -647,24 +647,30 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   .modal-body{padding:12px 14px;overflow-x:hidden;}
   .modal-footer{padding:10px 14px;}
 
-  /* Card detail: sidebar stacks above main content */
-  .detail-two-col{grid-template-columns:1fr;gap:0;}
+  /* Card detail: sidebar stacks above main content, constrained to viewport */
+  .detail-two-col{grid-template-columns:minmax(0,1fr);gap:0;}
 
   /* Sidebar: 2-column grid — Column|Assignee / DueDate|Priority */
+  /* minmax(0,1fr) prevents grid cells from blowing past viewport width */
   .detail-side{
     order:-1;
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
     gap:8px;
     padding-bottom:10px;
     border-bottom:1px solid var(--border);
     margin-bottom:12px;
   }
+  /* Each cell must not force wider than its column */
+  .detail-side .detail-section{min-width:0;}
+  .detail-side .field-select,
+  .detail-side .field-input{min-width:0;width:100%;box-sizing:border-box;}
+
   /* Tags, Cover Image, Delete button wrapper — span full width */
   .detail-side > *:nth-child(n+5){grid-column:1/-1;}
 
-  /* Tag picker: wraps cleanly within container */
-  .detail-side .tag-picker{display:flex;flex-wrap:wrap;gap:4px;}
+  /* Tag picker: wrap within container, no overflow */
+  .detail-side .tag-picker{display:flex;flex-wrap:wrap;gap:4px;overflow:hidden;}
 
   /* Delete Card button: full width */
   .detail-side .side-action-btn{width:100%;margin-bottom:0;font-size:11px;}
