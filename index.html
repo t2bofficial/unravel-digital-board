@@ -727,8 +727,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   .mention-dropdown{max-width:calc(100vw - 16px)!important;}
   .mention-opt{padding:10px 12px;} /* bigger tap targets */
 
-  /* ── Due date: compact font + tight padding so the date fits at half-width ── */
-  #cDue{font-size:10px;padding:6px 6px;letter-spacing:-.3px;}
+  /* ── Due date: overlay trick — display div shows formatted text, invisible
+       datetime-local sits on top so tapping opens the native picker ── */
+  .due-wrap{position:relative;display:block;min-width:0;}
+  .due-wrap input[type="datetime-local"]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+  .due-display{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
   /* ── Tag delete: always show on mobile (no hover) ── */
   .tag .tag-del{opacity:1;}
@@ -1001,7 +1004,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
           </div>
           <div class="detail-section">
             <div class="detail-section-title">Due Date</div>
-            <input type="datetime-local" class="field-input" id="cDue" style="font-size:12px;padding:7px 10px;" />
+            <div class="due-wrap">
+              <div class="field-input due-display" id="cDueDisplay">No date</div>
+              <input type="datetime-local" id="cDue" oninput="syncDueDisplay(this.value)" />
+            </div>
           </div>
           <div class="detail-section">
             <div class="detail-section-title">Priority</div>
@@ -1973,7 +1979,7 @@ function openNewCard(colId) {
   pendingCoverUrl = null; pendingCoverFile = null;
   document.getElementById('cTitle').value = '';
   document.getElementById('cDesc').value = '';
-  document.getElementById('cDue').value = '';
+  document.getElementById('cDue').value = ''; syncDueDisplay('');
   populateAssigneeSelect();
   // Pre-select current user
   const me = TEAM_MEMBERS.find(m => m.id === currentUser?.id);
@@ -2013,7 +2019,7 @@ async function openEditCard(cardId) {
       dueFmt = rawDue + 'T12:00';
     }
   }
-  document.getElementById('cDue').value = dueFmt;
+  document.getElementById('cDue').value = dueFmt; syncDueDisplay(dueFmt);
   populateAssigneeSelect();
   document.getElementById('cAssignee').value = card.assignee || '';
   document.getElementById('cPriority').value = card.priority || 'low';
@@ -3455,6 +3461,16 @@ function showMentionSheet(matches) {
   overlay.style.display='block';
   sheet.style.display='block';
   requestAnimationFrame(()=>sheet.classList.add('open'));
+}
+
+function syncDueDisplay(val) {
+  const el = document.getElementById('cDueDisplay');
+  if (!el) return;
+  if (!val) { el.textContent = 'No date'; el.style.color = 'var(--muted)'; return; }
+  const d = new Date(val);
+  el.textContent = d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) +
+    ' ' + d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+  el.style.color = '';
 }
 
 function insertMention(name) {
