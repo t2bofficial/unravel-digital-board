@@ -4,10 +4,17 @@
     { "src": "**/*", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/(.*\\.(png|ico|jpg|jpeg|svg|gif|webp|css|js|json))", "dest": "/$1" },
+    { "src": "/(.*\\.(png|ico|jpg|jpeg|svg|gif|webp|css|js|json|mobileconfig))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/unravel-board.mobileconfig",
+      "headers": [
+        { "key": "Content-Type", "value": "application/x-apple-aspen-config" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"unravel-board.mobileconfig\"" }
+      ]
+    },
     {
       "source": "/manifest.json",
       "headers": [
