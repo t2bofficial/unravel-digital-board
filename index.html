@@ -179,6 +179,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 @keyframes cardIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
 .card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.1);}
 .card.dragging{opacity:.35;cursor:grabbing;}
+.touch-drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:.88;transform:scale(1.04) rotate(1deg);box-shadow:0 10px 36px rgba(0,0,0,.45);border-radius:10px;transition:transform .08s;}
 .card.saving{opacity:.6;}
 [data-theme="dark"] .card{background:var(--surface2);}
 
@@ -1234,6 +1235,12 @@ let selTags          = new Set();
 let dragCardId       = null;
 let dragOverCardId   = null; // card being hovered over during drag
 let dragOverPos      = null; // "above" or "below"
+// touch-drag state
+let _touchTimer      = null;
+let _touchActive     = false;
+let _touchGhost      = null;
+let _touchOX         = 0;
+let _touchOY         = 0;
 let isConnected      = false;
 
 
@@ -1814,6 +1821,93 @@ function buildCard(card, col) {
     if (!dragCardId || dragCardId === card.id) return;
     reorderCard(dragCardId, card.id, dragOverPos || 'below', col.id);
   });
+
+  // ── TOUCH DRAG (long-press to drag on mobile) ──
+  el.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const startX = t.clientX, startY = t.clientY;
+    _touchTimer = setTimeout(() => {
+      _touchTimer = null;
+      _touchActive = true;
+      dragCardId = card.id;
+      const rect = el.getBoundingClientRect();
+      _touchOX = t.clientX - rect.left;
+      _touchOY = t.clientY - rect.top;
+      _touchGhost = el.cloneNode(true);
+      _touchGhost.className = 'card touch-drag-ghost';
+      _touchGhost.style.width  = rect.width  + 'px';
+      _touchGhost.style.height = rect.height + 'px';
+      _touchGhost.style.left   = (t.clientX - _touchOX) + 'px';
+      _touchGhost.style.top    = (t.clientY - _touchOY) + 'px';
+      _touchGhost.style.borderLeft = el.style.borderLeft;
+      document.body.appendChild(_touchGhost);
+      el.classList.add('dragging');
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 420);
+
+    // cancel long-press if finger moves significantly before timer fires
+    const onEarlyMove = em => {
+      const mv = em.touches[0];
+      if (Math.abs(mv.clientX - startX) > 8 || Math.abs(mv.clientY - startY) > 8) {
+        clearTimeout(_touchTimer); _touchTimer = null;
+        el.removeEventListener('touchmove', onEarlyMove);
+      }
+    };
+    el.addEventListener('touchmove', onEarlyMove, { passive: true });
+  }, { passive: true });
+
+  el.addEventListener('touchmove', e => {
+    if (!_touchActive) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    if (_touchGhost) {
+      _touchGhost.style.left = (t.clientX - _touchOX) + 'px';
+      _touchGhost.style.top  = (t.clientY - _touchOY) + 'px';
+    }
+    // detect card under finger
+    _touchGhost && (_touchGhost.style.display = 'none');
+    const under = document.elementFromPoint(t.clientX, t.clientY);
+    _touchGhost && (_touchGhost.style.display = '');
+    const cardEl = under && under.closest('.card');
+    document.querySelectorAll('.drag-target-above,.drag-target-below').forEach(c => {
+      c.classList.remove('drag-target-above','drag-target-below');
+    });
+    if (cardEl && cardEl.dataset.id && cardEl.dataset.id !== card.id) {
+      const rect = cardEl.getBoundingClientRect();
+      const pos  = t.clientY < rect.top + rect.height / 2 ? 'above' : 'below';
+      cardEl.classList.add(pos === 'above' ? 'drag-target-above' : 'drag-target-below');
+      dragOverCardId = cardEl.dataset.id;
+      dragOverPos    = pos;
+    } else {
+      dragOverCardId = null;
+      dragOverPos    = null;
+    }
+  }, { passive: false });
+
+  const _endTouchDrag = e => {
+    clearTimeout(_touchTimer); _touchTimer = null;
+    if (!_touchActive) return;
+    const t = (e.changedTouches || e.touches)[0];
+    if (_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
+    el.classList.remove('dragging');
+    document.querySelectorAll('.drag-target-above,.drag-target-below').forEach(c => {
+      c.classList.remove('drag-target-above','drag-target-below');
+    });
+    // find drop column
+    const under   = document.elementFromPoint(t.clientX, t.clientY);
+    const colUnder = under && under.closest('[data-col-id]');
+    const targetColId = colUnder ? colUnder.dataset.colId : null;
+    if (dragOverCardId && dragOverCardId !== card.id) {
+      reorderCard(dragCardId, dragOverCardId, dragOverPos || 'below', targetColId || col.id);
+    } else if (targetColId && targetColId !== col.id) {
+      dropCard(targetColId);
+    }
+    dragCardId = null; dragOverCardId = null; dragOverPos = null;
+    _touchActive = false;
+  };
+  el.addEventListener('touchend',    _endTouchDrag, { passive: true });
+  el.addEventListener('touchcancel', _endTouchDrag, { passive: true });
 
   return el;
 }
