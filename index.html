@@ -727,8 +727,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   .mention-dropdown{max-width:calc(100vw - 16px)!important;}
   .mention-opt{padding:10px 12px;} /* bigger tap targets */
 
-  /* ── Due date input: shrink font so it fits ── */
-  #cDue{font-size:11px;}
+  /* ── Due date: compact font + tight padding so the long date string fits ── */
+  #cDue{font-size:11px;padding:6px 8px;letter-spacing:-.2px;}
 
   /* ── Tag delete: always show on mobile (no hover) ── */
   .tag .tag-del{opacity:1;}
@@ -751,7 +751,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   background:var(--surface);border-radius:16px 16px 0 0;
   box-shadow:0 -6px 32px rgba(0,0,0,0.18);
   transition:bottom .25s cubic-bezier(.32,0,.67,0);
-  max-height:55vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0);
+  max-height:70vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0);
   display:none;
 }
 .mention-sheet.open{bottom:0;}
@@ -1381,7 +1381,6 @@ async function loadAndStart() {
     const profileData = memberRes.data || [];
     if (profileData.length > 0) {
       TEAM_MEMBERS = profileData
-        .filter(p => p.email_confirmed)
         .map((p, i) => ({
           id:       p.id,
           name:     capitalizeName(p.full_name || p.email?.split('@')[0] || 'Member'),
@@ -2694,7 +2693,6 @@ async function loadTeamMembers() {
       }];
     } else {
       TEAM_MEMBERS = data
-        .filter(p => p.email_confirmed)  // only verified users
         .map((p, i) => ({
           id: p.id,
           name: capitalizeName(p.full_name || p.email?.split('@')[0] || 'Member'),
@@ -3413,7 +3411,10 @@ function onCommentKeydown(e) {
 }
 
 function showMentionDropdown(ta) {
-  const matches=TEAM_MEMBERS.filter(m=>m.name.toLowerCase().includes(mentionState.query)||(m.email||'').split('@')[0].toLowerCase().includes(mentionState.query)).slice(0,8);
+  const q=mentionState.query;
+  const all=TEAM_MEMBERS.filter(m=>m.name.toLowerCase().includes(q)||(m.email||'').split('@')[0].toLowerCase().includes(q));
+  // On mobile show all matched; on desktop cap at 6 for UI space
+  const matches = window.innerWidth<=640 ? all : all.slice(0,6);
   if (!matches.length){closeMentionDropdown();return;}
 
   // Mobile → bottom sheet; desktop → floating dropdown
