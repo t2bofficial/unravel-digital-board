@@ -116,6 +116,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .board-badge{font-size:10px;padding:2px 8px;background:var(--brand-light);color:var(--brand);border-radius:20px;font-weight:600;letter-spacing:.2px;}
 [data-theme="dark"] .board-badge{background:rgba(37,99,235,0.12);color:#93c5fd;}
 .toolbar-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+#tagFilterRow{flex-wrap:wrap;}
 .search-box{display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:6px 11px;transition:border-color .15s;}
 .search-box:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
 .search-box input{background:transparent;border:none;outline:none;color:var(--text);font-family:inherit;font-size:12px;width:150px;}
@@ -566,6 +567,123 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .card.drag-target-above::before{content:'';display:block;height:3px;background:var(--brand);border-radius:2px;margin-bottom:6px;margin-top:-3px;}
 .card.drag-target-below::after{content:'';display:block;height:3px;background:var(--brand);border-radius:2px;margin-top:6px;margin-bottom:-3px;}
 
+/* ═══════════════════════════════════════════
+   MOBILE RESPONSIVE — Trello-style
+═══════════════════════════════════════════ */
+
+/* ── TABLET (≤ 900px) ── */
+@media (max-width:900px){
+  header{padding:0 16px;}
+  .stats-bar{padding:8px 16px;gap:12px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;}
+  .stats-bar::-webkit-scrollbar{display:none;}
+  .toolbar{padding:8px 16px;}
+  .board-wrap{padding:12px 16px;}
+  .col{width:260px;}
+  .detail-modal{max-width:95vw;}
+  .member-panel{width:360px;}
+  .theme-panel{right:12px;}
+  .notif-panel{right:12px;}
+  .deadline-panel{right:12px;}
+}
+
+/* ── MOBILE (≤ 640px) ── */
+@media (max-width:640px){
+  /* ── Header: clean Trello-style minimal bar ── */
+  header{padding:0 10px;height:48px;}
+  /* Hide logo text — keep just the mark */
+  .logo-name,.logo-sep,.logo-sub{display:none;}
+  .logo-mark{width:30px;height:30px;border-radius:6px;}
+  /* Project tabs: compact, horizontally scrollable */
+  .header-center{padding:0 4px;justify-content:flex-start;}
+  .project-tab{padding:4px 8px;font-size:11px;}
+  /* Hide noise: Live badge, member stack, bell, palette */
+  .rt-badge{display:none!important;}
+  .member-stack{display:none!important;}
+  .notif-btn{display:none;}
+  .theme-toggle{display:none;}
+  /* "+ New Card" → compact "+" icon button */
+  #newCardBtn{padding:5px 11px;font-size:0;min-width:32px;justify-content:center;gap:0;}
+  #newCardBtn::before{content:'+';font-size:20px;font-weight:600;line-height:1;}
+
+  /* ── Banner ── */
+  .banner{padding:4px 10px;font-size:10px;}
+
+  /* ── Stats bar: slim horizontal scroll strip ── */
+  .stats-bar{padding:4px 10px;gap:14px;overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;min-height:unset;}
+  .stats-bar::-webkit-scrollbar{display:none;}
+  /* Hide the progress bar segment on mobile — save vertical space */
+  .stats-bar .stat:last-child{display:none;}
+
+  /* ── Toolbar: title row + search row ── */
+  .toolbar{padding:6px 10px;flex-direction:column;align-items:stretch;gap:6px;}
+  .toolbar-left{align-items:center;}
+  .board-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw;}
+  .toolbar-right{width:100%;flex-wrap:nowrap!important;gap:6px;}
+  .search-box{flex:1;}
+  .search-box input{width:100%;}
+  /* Tag filters: single scrollable row — must use !important to override inline flex-wrap:wrap */
+  #tagFilterRow{overflow-x:auto!important;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;gap:4px!important;padding-bottom:2px;}
+  #tagFilterRow::-webkit-scrollbar{display:none;}
+
+  /* ── Board ── */
+  /* header(48) + banner(~26) + stats(~30) + toolbar-title(~32) + toolbar-search(~36) + borders ≈ 188px */
+  .board-wrap{padding:8px 8px 8px;height:calc(100vh - 188px);-webkit-overflow-scrolling:touch;}
+
+  /* ── Columns: Trello-style — 85vw, next col peeks ── */
+  .col{width:85vw;max-width:320px;max-height:calc(100vh - 228px);}
+  .add-col{width:72vw;max-width:280px;}
+
+  /* ── Modals: sheet slides up from bottom ── */
+  .modal-overlay{padding:0;align-items:flex-end;}
+  .modal{
+    max-width:100%;
+    max-height:93vh;
+    border-radius:16px 16px 0 0;
+    /* Drag handle hint */
+    border-top:3px solid var(--border2);
+  }
+  .detail-modal{max-width:100%;max-height:93vh;}
+  .modal-header{padding:14px 14px 11px;}
+  .modal-body{padding:12px 14px;}
+  .modal-footer{padding:10px 14px;}
+
+  /* Card detail: single-column layout */
+  .detail-two-col{grid-template-columns:1fr;gap:14px;}
+  /* Side actions float to top in 2-per-row grid */
+  .detail-side{order:-1;display:flex;flex-wrap:wrap;gap:5px;}
+  .detail-side .side-action-btn{flex:1 1 calc(50% - 3px);margin-bottom:0;font-size:11px;}
+
+  /* Form grids: single col */
+  .grid-2{grid-template-columns:1fr;}
+
+  /* ── Floating panels: full width ── */
+  .theme-panel{right:8px;left:8px;width:auto;top:56px;}
+  .deadline-panel{right:8px;left:8px;width:auto;top:56px;}
+  .notif-panel{right:8px;left:8px;width:auto;top:56px;}
+
+  /* ── Member side-panel: full screen drawer ── */
+  .member-panel{width:100%;max-width:100%;}
+
+  /* ── Toast: centered at bottom ── */
+  #toast-container{right:10px;left:10px;bottom:16px;align-items:center;}
+  .toast{justify-content:center;text-align:center;}
+
+  /* ── Dropdowns: keep on screen ── */
+  .member-overflow-menu{right:auto;left:0;}
+
+  /* ── Lightbox ── */
+  #lightboxImg{max-width:96vw;max-height:66vh;}
+  .lb-bar{flex-direction:column;align-items:flex-start;gap:8px;}
+  .lb-actions{width:100%;justify-content:flex-end;}
+}
+
+/* ── VERY SMALL (≤ 390px) ── */
+@media (max-width:390px){
+  .col{width:88vw;}
+  /* Hide project tabs bar — board title in toolbar serves as context */
+  .header-center{display:none;}
+}
+
 </style>
 </head>
 <body>
@@ -709,7 +827,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input type="text" id="searchInput" placeholder="Search cards… (⌘K)" oninput="debouncedSearch()" />
     </div>
-    <div id="tagFilterRow" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;"></div>
+    <div id="tagFilterRow" style="display:flex;gap:4px;align-items:center;"></div>
   </div>
 </div>
 
