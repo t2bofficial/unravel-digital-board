@@ -88,12 +88,12 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .logo-sub{color:var(--muted);font-size:12px;font-weight:400;}
 .header-center{display:flex;align-items:center;gap:2px;overflow-x:auto;padding:0 12px;flex:1;justify-content:center;}
 .header-center::-webkit-scrollbar{display:none;}
-.project-tab{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;color:var(--muted2);background:transparent;font-family:inherit;white-space:nowrap;transition:all .12s;}
+.project-tab{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;color:var(--muted2);background:transparent;font-family:inherit;white-space:nowrap;transition:all .12s;touch-action:manipulation;}
 .project-tab:hover{color:var(--text);background:var(--surface3);}
 .project-tab.active{color:var(--brand);background:var(--brand-light);font-weight:600;}
 [data-theme="dark"] .project-tab.active{color:#93c5fd;background:rgba(37,99,235,0.12);}
 .header-right{display:flex;align-items:center;gap:7px;flex-shrink:0;}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--r);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;border:none;line-height:1.4;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--r);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;border:none;line-height:1.4;touch-action:manipulation;}
 .btn-primary{background:var(--brand);color:#fff;}
 .btn-primary:hover{background:var(--brand-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,0.3);}
 .btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border2);}
@@ -138,6 +138,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .member-overflow-email{font-size:10.5px;color:var(--muted2);}
 
 /* BOARD */
+.board-outer{position:relative;}
 .board-wrap{padding:16px 24px 16px;overflow-x:auto;height:calc(100vh - 160px);position:relative;z-index:1;background:var(--bg);cursor:default;}
 .board-wrap.panning{cursor:grabbing;user-select:none;}
 .board{display:flex;gap:12px;align-items:flex-start;min-width:max-content;}
@@ -153,10 +154,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .col-header{display:flex;align-items:center;justify-content:space-between;padding:11px 12px 9px;border-bottom:1px solid var(--border);}
 .col-title-wrap{display:flex;align-items:center;gap:7px;}
 .col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.col-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text);}
-.col-count{font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;background:var(--surface3);color:var(--muted2);border:1px solid var(--border);}
+.col-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text);}
+.col-count{font-size:11px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--surface3);color:var(--muted2);border:1px solid var(--border);}
 .col-actions{display:flex;gap:2px;}
-.col-btn{width:24px;height:24px;border-radius:6px;background:transparent;border:none;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s;font-family:inherit;}
+.col-btn{width:32px;height:32px;border-radius:6px;background:transparent;border:none;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .12s;font-family:inherit;touch-action:manipulation;}
 .col-btn:hover{background:var(--surface3);color:var(--text);}
 .col-body{padding:8px;min-height:50px;overflow-y:auto;flex:1;}
 .col-body::-webkit-scrollbar{width:4px;}
@@ -213,7 +214,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .modal-overlay.open .modal{transform:translateY(0);}
 .modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 20px 13px;border-bottom:1px solid var(--border);gap:12px;}
 .modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;letter-spacing:-.2px;flex:1;color:var(--text);}
-.modal-close{width:28px;height:28px;border-radius:7px;background:var(--surface3);border:none;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;}
+.modal-close{width:36px;height:36px;border-radius:7px;background:var(--surface3);border:none;color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;touch-action:manipulation;}
 .modal-close:hover{background:var(--border2);color:var(--text);}
 .modal-body{padding:18px 20px;overflow-y:auto;flex:1;}
 .modal-body::-webkit-scrollbar{width:5px;}
@@ -360,7 +361,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .comment-input-row{display:flex;gap:8px;align-items:flex-end;}
 .comment-textarea{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:inherit;font-size:12.5px;resize:none;outline:none;min-height:60px;line-height:1.5;transition:border-color .14s;}
 .comment-textarea:focus{border-color:var(--accent);}
-.comment-send{padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .14s;white-space:nowrap;}
+.comment-send{padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .14s;white-space:nowrap;touch-action:manipulation;}
 .comment-send:hover{background:#6278f9;}
 .comment-send:disabled{opacity:.4;cursor:not-allowed;}
 
@@ -383,7 +384,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .side-action-btn.danger:hover{border-color:rgba(239,68,68,.3);color:var(--danger);background:rgba(239,68,68,.07);}
 
 /* TAG DELETE */
-.tag-del{width:14px;height:14px;border-radius:3px;background:rgba(0,0,0,0.2);border:none;color:currentColor;cursor:pointer;font-size:9px;display:inline-flex;align-items:center;justify-content:center;margin-left:3px;opacity:0;transition:opacity .12s;vertical-align:middle;}
+.tag-del{width:14px;height:14px;border-radius:3px;background:rgba(0,0,0,0.2);border:none;color:currentColor;cursor:pointer;font-size:9px;display:inline-flex;align-items:center;justify-content:center;margin-left:3px;opacity:0;transition:opacity .12s;vertical-align:middle;position:relative;touch-action:manipulation;}
+.tag-del::after{content:'';position:absolute;inset:-10px;}
 .tag:hover .tag-del{opacity:1;}
 
 ::-webkit-scrollbar{width:5px;height:5px;}
@@ -629,6 +631,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   /* ── Board ── */
   /* header(48) + banner(~26) + stats(~30) + toolbar-title(~32) + toolbar-search(~36) + borders ≈ 188px */
   .board-wrap{padding:8px 8px 8px;height:calc(100vh - 188px);-webkit-overflow-scrolling:touch;}
+  /* Fade-right gradient hints that board scrolls horizontally */
+  .board-outer::after{content:'';position:absolute;top:0;right:0;width:40px;height:100%;background:linear-gradient(to right,transparent,var(--bg));pointer-events:none;z-index:2;}
 
   /* ── Columns: Trello-style — 85vw, next col peeks ── */
   .col{width:85vw;max-width:320px;max-height:calc(100vh - 228px);}
@@ -920,6 +924,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
   </div>
 </div>
 
+<div class="board-outer">
 <div class="board-wrap">
   <div class="board" id="board">
     <div class="loading-state">
@@ -928,6 +933,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
     </div>
   </div>
 </div>
+</div><!-- /board-outer -->
 
 <!-- CARD DETAIL MODAL -->
 <div class="modal-overlay" id="cardModal">
